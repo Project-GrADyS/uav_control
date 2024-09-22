@@ -47,3 +47,35 @@ def rlt(uav: Copter = Depends(get_copter_instance)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"RTL_COMMAND FAIL: {e}")
     return {"result": "Landed at home successfully"}
+
+@command_router.get("/set_air_speed", tags=["command"], description=f"Changes copter air speed to specified amount (m/s)")
+def set_air_speed(new_v: int, uav: Copter = Depends(get_copter_instance)):
+    try:
+        uav.change_air_speed(new_v)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"CHANGE_AIR_SPEED FAIL: {e}")
+    return {"result": f"Air speed set to {new_v}m/s"}
+
+@command_router.get("/set_ground_speed", tags=["command"], description=f"Changes copter ground speed to specified amount (m/s)")
+def set_ground_speed(new_v: int, uav: Copter = Depends(get_copter_instance)):
+    try:
+        uav.change_ground_speed(new_v)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"CHANGE_GROUND_SPEED FAIL: {e}")
+    return {"result": f"Ground speed set to {new_v}m/s"}
+
+@command_router.get("/set_climb_speed", tags=["command"], description=f"Changes copter climb speed to specified amount (m/s)")
+def set_climb_speed(new_v: int, uav: Copter = Depends(get_copter_instance)):
+    try:
+        uav.change_climb_speed(new_v)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"CHANGE_CLIMB_SPEED FAIL: {e}")
+    return {"result": f"Climb speed set to {new_v}m/s"}
+
+@command_router.get("/set_descent_speed", tags=["command"], description=f"Changes copter descent speed to specified amount (m/s)")
+def set_descent_speed(new_v: int, uav: Copter = Depends(get_copter_instance)):
+    try:
+        uav.change_descent_speed(new_v)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"CHANGE_DESCENT_SPEED FAIL: {e}")
+    return {"result": f"Descent speed set to {new_v}m/s"}

@@ -100,7 +100,9 @@ class ArmedAtEndOfTestException(ErrorException):
     """Created when test left vehicle armed"""
     pass
 
-
+class MovementException(ErrorException):
+    """Throw when a stopped copter moves"""
+    pass
 
 class Copter:
     """ArduPilot Copter class.
@@ -1469,7 +1471,31 @@ Also, ignores heartbeats not from our target system"""
             if msg is not None:
                 self.progress("Received local target: %s" % str(msg))
                 return location(msg.lat_int * 1.0e-7, msg.lon_int * 1.0e-7, msg.alt, msg.yaw)
+            
+    def ensure_moving(self, amount=5, timeout=10):
+        current_pos = self.mav.location()
+
+        def travelled_distance():
+            return self.get_distance(current_pos, self.mav.location())
+
+        try:
+            self.wait_and_maintain(value_name="Moving", target=5, current_value_getter=lambda: travelled_distance(), timeout=timeout)
+        except TimeoutException:
+            raise TimeoutException("No movement registred")
     
+    def ensure_holding(self, timeout=10):
+
+        def travelled_distance():
+            last_pos = self.mav.location()
+            time.sleep(1)
+            current_pos = self.mav.location()
+            d = self.get_distance(last_pos, current_pos)
+            return d
+
+        try:
+            self.wait_and_maintain(value_name="Holding", target=0, current_value_getter=lambda: travelled_distance(), timeout=timeout)
+        except TimeoutException:
+            raise TimeoutException("Moviment registred")
     def go_to_gps(self, lat: float, long: float, alt: int):
         self.mav.mav.set_position_target_global_int_send(
                                                             0,  # timestamp
@@ -1587,3 +1613,90 @@ Also, ignores heartbeats not from our target system"""
                                                             0, # yam heading (radians)
                                                             0, # yaw_rate (rad/s)
                                                         )
+    """
+        Changes copter groundspeed, in other words, it doesn't affect altitude variation aka vertical speed
+            new_v: new ground speed in m/s
+    """
+    def change_ground_speed(self, new_v):
+        self.send_cmd(
+                        mavutil.mavlink.MAV_CMD_DO_CHANGE_SPEED, # command
+                        mavutil.mavlink.SPEED_TYPE_GROUNDSPEED, # speed type
+                        new_v, # new velocity (m/s)
+                        -1, # new throttle value, -1 remains it the same
+                        0, 
+                        0,
+                        0,
+                        0,
+                        target_sysid=self.target_system,
+                        target_compid=self.target_component
+                    )
+        
+    def change_climb_speed(self, new_v):
+        self.send_cmd(
+                        mavutil.mavlink.MAV_CMD_DO_CHANGE_SPEED, # command
+                        mavutil.mavlink.SPEED_TYPE_CLIMB_SPEED, # speed type
+                        new_v, # new velocity (m/s)
+                        -1, # new throttle value, -1 remains it the same
+                        0, 
+                        0,
+                        0,
+                        0,
+                        target_sysid=self.target_system,
+                        target_compid=self.target_component
+                    )
+        
+    def change_descent_speed(self, new_v):
+        self.send_cmd(
+                        mavutil.mavlink.MAV_CMD_DO_CHANGE_SPEED, # command
+                        mavutil.mavlink.SPEED_TYPE_DESCENT_SPEED, # speed type
+                        new_v, # new velocity (m/s)
+                        -1, # new throttle value, -1 remains it the same
+                        0, 
+                        0,
+                        0,
+                        0,
+                        target_sysid=self.target_system,
+                        target_compid=self.target_component
+                    )
+        
+    def change_air_speed(self, new_v):
+        self.send_cmd(
+                        mavutil.mavlink.MAV_CMD_DO_CHANGE_SPEED, # command
+                        mavutil.mavlink.SPEED_TYPE_AIRSPEED, # speed type
+                        new_v, # new velocity (m/s)
+                        -1, # new throttle value, -1 remains it the same
+                        0, 
+                        0,
+                        0,
+                        0,
+                        target_sysid=self.target_system,
+                        target_compid=self.target_component
+                    )
+        
+    def stop(self):
+        self.run_cmd(
+                        mavutil.mavlink.MAV_CMD_DO_PAUSE_CONTINUE, # command
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        target_sysid=self.target_system,
+                        target_compid=self.target_component
+                    )
+        
+    def resume(self):
+        self.run_cmd(
+                        mavutil.mavlink.MAV_CMD_DO_PAUSE_CONTINUE, # command
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        target_sysid=self.target_system,
+                        target_compid=self.target_component
+                    )

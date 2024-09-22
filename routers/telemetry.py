@@ -5,7 +5,7 @@ from classes.pos import GPS_pos, Local_pos
 
 telemetry_router = APIRouter(
     prefix="/telemetry",
-    tags=["telemetry"]
+    tags=["telemetry"],
 )
 
 @telemetry_router.get("/gps_position", tags=["telemetry"], summary="Returns the copter current GPS position")
