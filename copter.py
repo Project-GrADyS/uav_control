@@ -1552,6 +1552,13 @@ Also, ignores heartbeats not from our target system"""
                                                             0, # yaw_rate (rad/s)
                                                         )
     
+    def get_ned_info(self, timeout=10):
+        ned_msg = self.mav.recv_match(type='LOCAL_POSITION_NED', blocking=True, timeout=timeout)
+        if ned_msg is None:
+            raise TimeoutException("Did not receive LOCAL_POSITION_NED message")
+        self.progress("Status: %s" % str(mavutil.dump_message_verbose(sys.stdout, ned_msg)))
+        return ned_msg
+    
     def get_ned_position(self, timeout=10):
         """Get and print LOCAL_POSITION_NED msg send by the drone.
         """
@@ -1700,3 +1707,70 @@ Also, ignores heartbeats not from our target system"""
                         target_sysid=self.target_system,
                         target_compid=self.target_component
                     )
+
+    def get_raw_status_message(self, timeout=5):
+        sys_msg = self.mav.recv_match(type="SYS_STATUS", blocking=True, timeout=timeout)
+        if sys_msg is None:
+            raise TimeoutException("Did not receive SYS_STATUS")
+        self.progress("Status: %s" % str(mavutil.dump_message_verbose(sys.stdout, sys_msg)))
+        return sys_msg
+
+    def get_sensor_status(self, timeout=5, sensor_dict={
+        "gyro": mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_GYRO,
+        "accelerometer": mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_ACCEL,
+        "gps": mavutil.mavlink.MAV_SYS_STATUS_SENSOR_GPS,
+        "altitude_control": mavutil.mavlink.MAV_SYS_STATUS_SENSOR_Z_ALTITUDE_CONTROL,
+        "position_control": mavutil.mavlink.MAV_SYS_STATUS_SENSOR_XY_POSITION_CONTROL,
+        "radio_receiver": mavutil.mavlink.MAV_SYS_STATUS_SENSOR_RC_RECEIVER,
+        "motor_output": mavutil.mavlink.MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS,
+        "battery": mavutil.mavlink.MAV_SYS_STATUS_SENSOR_BATTERY,
+        "pre_arm_check": mavutil.mavlink.MAV_SYS_STATUS_PREARM_CHECK,
+    }):
+        sys_msg = self.get_raw_status_message(timeout=timeout)
+        s_data = {}
+        for key, value in sensor_dict.items():
+            sensor_present = False if (sys_msg.onboard_control_sensors_present & value) == 0 else True
+            sensor_enabled = False if (sys_msg.onboard_control_sensors_enabled & value) == 0 else True
+            sensor_health = False if (sys_msg.onboard_control_sensors_health & value) == 0 else True
+            s_data[key] = {
+                "present": sensor_present,
+                "enabled": sensor_enabled,
+                "health": sensor_health
+            }
+        
+        return s_data
+    
+    def get_battery_info(self, timeout=5):
+        sys_msg = self.get_raw_status_message(timeout=timeout)
+
+        return {
+            "voltage": sys_msg.voltage_battery,
+            "current": sys_msg.current_battery,
+            "battery_remaining": sys_msg.battery_remaining
+        }
+    
+    def get_error_info(self, timeout=5):
+        sys_msg = self.get_raw_status_message(timeout=timeout)
+        print("building autopilot errors...")
+        autopilot_errors = [sys_msg.errors_count1, sys_msg.errors_count2, sys_msg.errors_count3, sys_msg.errors_count4]
+        autopilot_errors = [err for err in autopilot_errors if err != 0]
+        print(autopilot_errors)
+        return {
+            "communication_drop_rate": sys_msg.drop_rate_comm,
+            "communication_errors": sys_msg.errors_comm,
+            "autopilot_errors": autopilot_errors
+        }
+    
+    def get_gps_info(self, timeout=5):
+        gps_msg = self.mav.recv_match(type="GLOBAL_POSITION_INT", blocking=True, timeout=timeout)
+        if gps_msg is None:
+            raise TimeoutException("Did not receive GLOBAL_POSITION_INT")
+        self.progress("Gps: %s" % str(mavutil.dump_message_verbose(sys.stdout, gps_msg)))
+        return gps_msg
+    
+    def get_raw_gps(self, timeout=5):
+        gps_raw = self.mav.recv_match(type="GPS_RAW_INT", blocking=True, timeout=timeout)
+        if gps_raw is None:
+            raise TimeoutException("Did not receive GLOBAL_RAW_INT")
+        self.progress("Gps_RAW: %s" % str(mavutil.dump_message_verbose(sys.stdout, gps_raw)))
+        return gps_raw
