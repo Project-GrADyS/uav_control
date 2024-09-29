@@ -31,29 +31,27 @@ def go_to_gps_wait(pos: GPS_pos, uav: Copter = Depends(get_copter_instance)):
         raise HTTPException(status_code=500, detail=f"GO_TO FAIL: {e}")
     return {"result": f"Arrived at coord ({pos.lat}, {pos.long}, {pos.alt})"}
 
-@movement_router.post("/go_to_local", tags=["movement"], summary="Moves to specified NEU position")
-def go_to_local(pos: Local_pos, uav: Copter = Depends(get_copter_instance)):
+@movement_router.post("/go_to_ned", tags=["movement"], summary="Moves to specified NED position")
+def go_to_ned(pos: Local_pos, uav: Copter = Depends(get_copter_instance)):
     try:
         uav.change_mode("GUIDED")
-        pos.z = -pos.z # from NEU to NED
         uav.go_to_ned(pos.x, pos.y, pos.z) 
         uav.ensure_moving()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"GO_TO FAIL: {e}")
-    return {"result": f"Going to local coord ({pos.x}, {pos.y}, {pos.z})"}
+    return {"result": f"Going to NED coord ({pos.x}, {pos.y}, {pos.z})"}
 
-@movement_router.post("/go_to_local_wait", tags=["movement"], summary="Moves and waits for the copter to get to specified NEU position")
-def go_to_local_wait(pos: Local_pos, uav: Copter = Depends(get_copter_instance)):
+@movement_router.post("/go_to_ned_wait", tags=["movement"], summary="Moves and waits for the copter to get to specified NED position")
+def go_to_ned_wait(pos: Local_pos, uav: Copter = Depends(get_copter_instance)):
     try:
         uav.change_mode("GUIDED")
-        pos.z = -pos.z # from NEU to NED
         uav.go_to_ned(pos.x, pos.y, pos.z)
         uav.ensure_moving()
         uav.wait_ned_position(pos)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"GO_TO FAIL: {e}")
-    return {"result": f"Arrived at local coord ({pos.x}, {pos.y}, {pos.z})"}
+    return {"result": f"Arrived at NED coord ({pos.x}, {pos.y}, {pos.z})"}
 
 @movement_router.post("/drive", tags=["movement"], summary="Drives copter the specified amount in meters")
 def drive(pos: Local_pos, uav: Copter = Depends(get_copter_instance)):
