@@ -27,7 +27,7 @@ class Runner:
 
         # General Params
         self.__api_port = None
-        self.__connection = None
+        self.__udp_port = None
     
         # Internal Process
         self.__api_process = None
@@ -43,17 +43,17 @@ class Runner:
         print("[Runner] " + text)
 
     def __startSITL(self):
-        sitl_command = f'xterm -e {self.__ardupilot}/Tools/autotest/sim_vehicle.py -v ArduCopter -I {self.__sysid} --sysid {self.__sysid} -N -L {self.__location} --out {self.__connection}'
-        sitl_command = sitl_command.split(" ")
+        sitl_command = f'xterm -e {self.__ardupilot}/Tools/autotest/sim_vehicle.py -v ArduCopter -I {self.__sysid} --sysid {self.__sysid} -N -L {self.__location} --out 127.0.0.1:{self.__udp_port} --out 172.26.176.1:{self.__udp_port} &'
 
-        self.__sitl_process = Popen(sitl_command)
+        self.__sitl_process = os.system(sitl_command)
 
     def __runAPI(self):
         api_command = "fastapi dev uav_api.py"
         api_command = api_command.split(" ")
 
         env = os.environ.copy()
-        env["CONNECTION_STRING"] = self.connection
+        env["SYSID"] = self.__sysid
+        env["UDP_PORT"] = self.__udp_port
         self.__api_process = Popen(api_command, env=env)
 
     def __setMode(self, mode):
@@ -66,13 +66,13 @@ class Runner:
     
     def __exit(self):
         if self.__sitl_process != None:
-            self.__sitl_process.terminate()
+            os.system("kill %d" % self.__sitl_process)
         if self.__api_process != None:
             self.__api_process.terminate()
 
-    def setParams(self, sysid=None, connection=None, api_port=None, location=None):
+    def setParams(self, sysid=None, udp_port=None, api_port=None, location=None):
         self.__sysid = sysid if sysid != None else self.__sysid
-        self.__connection = connection if connection != None else self.__connection
+        self.__udp_port = udp_port if udp_port != None else self.__udp_port
         self.__api_port = api_port if api_port != None else self.__api_port
         self.__location = location if location != None else self.__location
 
@@ -81,11 +81,11 @@ class Runner:
         self.__config.read(file_path)
 
         if self.__mode == CopterMode.SIMULATED:
-            self.__sysid = self.__config["SIMULATION PARAMS"]["sysid"]
-            self.__location = self.__config["SIMULATION PARAMS"]["loc"]
+            self.__location = self.__config["RUNNER"]["loc"]
         
-        self.__connection = self.__config["GENERAL PARAMS"]["connection"]
-        self.__api_port = self.__config["GENERAL PARAMS"]["api-port"]
+        self.__sysid = self.__config["RUNNER"]["sysid"]
+        self.__udp_port = self.__config["RUNNER"]["udp-port"]
+        #self.__api_port = self.__config["GENERAL PARAMS"]["api-port"]
 
     def setArdupilot(self, path):
         self.__ardupilot = path

@@ -25,3 +25,5 @@ parser.add_argument(
 args = parser.parse_args()
 
 copter_runner = Runner(CopterMode.SIMULATED)
+copter_runner.setParams(sysid=args.uav_sysid, udp_port=args.uav_udp_port, location= "AbraDF")
+copter_runner.run()

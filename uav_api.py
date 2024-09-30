@@ -7,7 +7,7 @@ from routers.movement import movement_router
 from routers.telemetry import telemetry_router
 env = os.environ
 
-copter = get_copter_instance({"uav_sysid": env["UAV_SYSID"], "uav_udp_port": env["UAV_UDP_PORT"]})
+copter = get_copter_instance(env["SYSID"], env["UDP_PORT"])
 
 metadata = [
     {
