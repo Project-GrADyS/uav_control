@@ -48,7 +48,7 @@ class Runner:
         self.__sitl_process = os.system(sitl_command)
 
     def __runAPI(self):
-        api_command = "fastapi dev uav_api.py"
+        api_command = f"uvicorn uav_api:app --host 0.0.0.0 --port {self.__api_port} --reload"
         api_command = api_command.split(" ")
 
         env = os.environ.copy()
@@ -85,7 +85,7 @@ class Runner:
         
         self.__sysid = self.__config["RUNNER"]["sysid"]
         self.__udp_port = self.__config["RUNNER"]["udp-port"]
-        #self.__api_port = self.__config["GENERAL PARAMS"]["api-port"]
+        self.__api_port = self.__config["RUNNER"]["api-port"]
 
     def setArdupilot(self, path):
         self.__ardupilot = path
