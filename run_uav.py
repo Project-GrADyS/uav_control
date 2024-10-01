@@ -4,16 +4,30 @@ from runner import Runner, CopterMode
 parser = ArgumentParser()
 
 parser.add_argument(
-    '--uav_sysid',
-    dest='uav_sysid',
-    default=-1,
+    '--sysid',
+    dest='sysid',
+    default=None,
     help="Value for uav SYSID to connect through mavlink",  
 )
 parser.add_argument(
-    '--uav_udp_port',
-    dest='uav_udp_port',
-    default=-1,
-    help="Value for uav UAV on localhost",  
+    '--udp_port',
+    dest='udp_port',
+    default=None,
+    help="Value for uav UDP connection on localhost",  
+)
+
+parser.add_argument(
+    '--location',
+    dest='location',
+    default=None,
+    help="Value for uav HOME LOCATION"
+)
+
+parser.add_argument(
+    '--config',
+    dest='config',
+    default=None,
+    help="Config file to extract configurations from"
 )
 # parser.add_argument(
 #     '--uav_api_port',
@@ -25,5 +39,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 copter_runner = Runner(CopterMode.SIMULATED)
-copter_runner.setParams(sysid=args.uav_sysid, udp_port=args.uav_udp_port, location= "AbraDF")
+if args.config != None:
+    copter_runner.setParamsFromConfig(args.config)
+copter_runner.setParams(sysid=args.sysid, udp_port=args.udp_port, location=args.location)
 copter_runner.run()
