@@ -5,9 +5,29 @@ from routers.command import command_router
 from routers.mission import mission_router
 from routers.movement import movement_router
 from routers.telemetry import telemetry_router
-env = os.environ
+from argparse import ArgumentParser
+parser = ArgumentParser()
 
-copter = get_copter_instance(env["SYSID"], env["UDP_PORT"])
+parser.add_argument(
+    '--port',
+    dest='port',
+    default=8000,
+    help='Port for api to run on'
+)
+
+parser.add_argument(
+    '--uav_connection',
+    dest='uav_connection',
+    default=None,
+    help='Address used for copter connection'
+)
+
+args = parser.parse_args()
+
+if args.uav_connection == None:
+    raise Exception("No uav_connection received")
+
+copter = get_copter_instance(args.uav_connection)
 
 metadata = [
     {
@@ -42,3 +62,6 @@ app.include_router(movement_router)
 app.include_router(command_router)
 app.include_router(telemetry_router)
 app.include_router(mission_router)
+
+if __name__ == '__main__':
+    uvicorn.run("main:app", host="0.0.0.0", port=args.port, log_level="info", reload=True)

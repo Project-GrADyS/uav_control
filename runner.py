@@ -43,7 +43,7 @@ class Runner:
         print("[Runner] " + text)
 
     def __startSITL(self):
-        sitl_command = f'xterm -e {self.__ardupilot}/Tools/autotest/sim_vehicle.py -v ArduCopter -I {self.__sysid} --sysid {self.__sysid} -N -L {self.__location} --out 127.0.0.1:{self.__udp_port} --out 172.26.176.1:{self.__udp_port} &'
+        sitl_command = f'xterm -e {self.__ardupilot}/Tools/autotest/sim_vehicle.py -v ArduCopter -I {self.__sysid} --sysid {self.__sysid} -N -L {self.__location} --out 127.0.0.1:{self.__udp_port} --out 172.31.16.1:{self.__udp_port} --out 172.26.176.1:{self.__udp_port} &'
 
         self.__sitl_process = os.system(sitl_command)
 
