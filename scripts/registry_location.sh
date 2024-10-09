@@ -1,1 +1,1 @@
-mkdir ~/.config/ardupilot echo "AbraDF=-15.840081,-47.926642,1042,30" >> ~/.config/ardupilot/locations.txt
+mkdir ~/.config/ardupilot echo "$1=$2,$3,$4,$5" >> ~/.config/ardupilot/locations.txt
