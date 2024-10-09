@@ -55,9 +55,16 @@ metadata = [
     }
 ]
 
+description = f"""
+## COPTER INFORMATION
+* SYSID = **{args.sysid}**
+* CONNECTION_STRING = **{args.uav_connection}**
+"""
+
 app = FastAPI(
     title="UavControl API",
-    summary="API designed to simplify Copter control with Ardupilot",
+    summary=f"API designed to simplify Copter control with Ardupilot",
+    description=description,
     version="0.0.1",
     contact={
         "name": "Francisco Fleury",

@@ -75,7 +75,6 @@ parser.add_argument(
 
 args = parser.parse_args()
 print(args)
-print(args.uav_sysid)
 uav_args = {}
 
 # gets config if is real-flight or if config argument was passed in simulated mode
