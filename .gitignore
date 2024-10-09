@@ -3,3 +3,4 @@ __pycache__
 terrain
 eeprom.bin
 mav*
+.env

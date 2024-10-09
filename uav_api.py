@@ -22,12 +22,19 @@ parser.add_argument(
     help='Address used for copter connection'
 )
 
+parser.add_argument(
+    '--sysid',
+    dest='sysid',
+    default=None,
+    help='Sysid for Copter'
+)
+
 args = parser.parse_args()
 
 if args.uav_connection == None:
     raise Exception("No uav_connection received")
 
-copter = get_copter_instance(args.uav_connection)
+copter = get_copter_instance(args.sysid, args.uav_connection)
 
 metadata = [
     {
@@ -64,4 +71,5 @@ app.include_router(telemetry_router)
 app.include_router(mission_router)
 
 if __name__ == '__main__':
-    uvicorn.run("main:app", host="0.0.0.0", port=args.port, log_level="info", reload=True)
+    import uvicorn
+    uvicorn.run("uav_api:app", host="0.0.0.0", port=int(args.port), log_level="info", reload=True)
