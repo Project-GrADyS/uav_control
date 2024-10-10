@@ -23,6 +23,13 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    '--connection_type',
+    dest='connection_type',
+    default='udpin',
+    help="Connection type (client or server) for copter. Either udpin or udpout"
+)
+
+parser.add_argument(
     '--sysid',
     dest='sysid',
     default=None,
@@ -34,7 +41,7 @@ args = parser.parse_args()
 if args.uav_connection == None:
     raise Exception("No uav_connection received")
 
-copter = get_copter_instance(args.sysid, args.uav_connection)
+copter = get_copter_instance(args.sysid, f"{args.connection_type}:{args.uav_connection}")
 
 metadata = [
     {

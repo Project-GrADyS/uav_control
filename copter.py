@@ -1777,3 +1777,11 @@ Also, ignores heartbeats not from our target system"""
     def get_ned_info(self, timeout=5):
         ned_msg = self.get_message("LOCAL_POSITION_NED", timeout=timeout)
         return ned_msg
+
+    def get_general_info(self, timeout=5):
+        info_msg = self.get_message("VFR_HUD", timeout=timeout)
+        return info_msg
+
+    def get_compass_info(self, timeout=5):
+        compass_msg = self.get_message("MAG_CAL_REPORT", timeout=timeout)
+        return compass_msg
