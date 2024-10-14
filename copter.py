@@ -1478,8 +1478,11 @@ Also, ignores heartbeats not from our target system"""
         def travelled_distance():
             return self.get_distance(current_pos, self.mav.location())
 
+        def moving_validator(value, target):
+            return value >= target
+
         try:
-            self.wait_and_maintain(value_name="Moving", target=5, current_value_getter=lambda: travelled_distance(), timeout=timeout)
+            self.wait_and_maintain(value_name="Moving", target=3, validator=moving_validator, current_value_getter=lambda: travelled_distance(), timeout=timeout)
         except TimeoutException:
             raise TimeoutException("No movement registred")
     

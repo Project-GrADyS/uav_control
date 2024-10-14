@@ -1,10 +1,13 @@
 from protocol.interface import IProvider
 from protocol.messages.mobility import MobilityCommand, GotoCoordsMobilityCommand, GotoGeoCoordsMobilityCommand, MobilityCommandType
 import requests
+
 class UavControlProvider(IProvider):
     def __init__(self, sysid, api_url):
         self.id = sysid
         self.api_url = api_url
+        self.timers = []
+        self.time = -1
 
     # def send_communication_command(self, command: CommunicationCommand) -> None:
     #     """
@@ -30,16 +33,8 @@ class UavControlProvider(IProvider):
                 "alt": command.param_3
             }
             requests.post(self.api_url+"/movement/go_to_gps", json=data)
-    # def schedule_timer(self, timer: str, timestamp: float) -> None:
-    #     """
-    #     Schedules a timer that should fire at a specified timestamp
-
-    #     Args:
-    #         timer: the timer to schedule. Use this string to identify the timer when it fires, associate it with some
-    #             serialized data, or anything else that can be represented as a string.
-    #         timestamp: the timestamp in simulation seconds at which the timer should fire.
-    #     """
-    #     pass
+    def schedule_timer(self, timer: str, timestamp: float) -> None:
+        self.timers.append((timer, timestamp))
 
     # def cancel_timer(self, timer: str) -> None:
     #     """
@@ -51,15 +46,8 @@ class UavControlProvider(IProvider):
     #     """
     #     pass
 
-    # def current_time(self) -> float:
-    #     """
-    #     Returns the current simulator time in seconds
-
-    #     Returns:
-    #         the current simulator time in seconds
-    #     """
-    #     pass
-
+    def current_time(self) -> float:
+        return self.time
     def get_id(self) -> int:
         """
         Returns the node's unique identifier in the simulation
@@ -69,4 +57,9 @@ class UavControlProvider(IProvider):
         """
         return self.id
 
-    # TODO: Document this
+    def collect_timers(self):
+        current_timers = self.timers
+        self.timers = []
+        return current_timers
+
+        # TODO: Document this

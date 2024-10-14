@@ -83,7 +83,7 @@ app.include_router(movement_router)
 app.include_router(command_router)
 app.include_router(telemetry_router)
 app.include_router(mission_router)
-
+print("STARTING API")
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run("uav_api:app", host="0.0.0.0", port=int(args.port), log_level="info", reload=True)

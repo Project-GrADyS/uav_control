@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any
 
 from protocol.messages.mobility import MobilityCommand
-
+from protocol.messages.telemetry import Telemetry
 
 class IProvider(ABC):
     """
@@ -128,16 +128,16 @@ class IProtocol(ABC):
         """
         pass
 
-    # @abstractmethod
-    # def handle_timer(self, timer: str) -> None:
-    #     """
-    #     Called when a timer fires. The timer is identified by a string. This is the same string that was passed to the
-    #     provider's schedule_timer() method when the timer was scheduled.
+    @abstractmethod
+    def handle_timer(self, timer: str) -> None:
+        """
+        Called when a timer fires. The timer is identified by a string. This is the same string that was passed to the
+        provider's schedule_timer() method when the timer was scheduled.
 
-    #     Args:
-    #         timer: the timer that fired
-    #     """
-    #     pass
+        Args:
+            timer: the timer that fired
+        """
+        pass
 
     # @abstractmethod
     # def handle_packet(self, message: str) -> None:
@@ -150,16 +150,16 @@ class IProtocol(ABC):
     #     """
     #     pass
 
-    # @abstractmethod
-    # def handle_telemetry(self, telemetry: Telemetry) -> None:
-    #     """
-    #     Regularly called by the mobility module with information about the state of the node's mobility. Use this data
-    #     if your protocol should react to the node's mobility.
+    @abstractmethod
+    def handle_telemetry(self, telemetry: Telemetry) -> None:
+        """
+        Regularly called by the mobility module with information about the state of the node's mobility. Use this data
+        if your protocol should react to the node's mobility.
 
-    #     Args:
-    #         telemetry: the telemetry data
-    #     """
-    #     pass
+        Args:
+            telemetry: the telemetry data
+        """
+        pass
 
     @abstractmethod
     def finish(self) -> None:
