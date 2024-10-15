@@ -1,47 +1,19 @@
-import os
 from fastapi import FastAPI
-from copter_connection import get_copter_instance
-from routers.command import command_router
-from routers.mission import mission_router
-from routers.movement import movement_router
-from routers.telemetry import telemetry_router
+from args.uav_args import parse_api
 from argparse import ArgumentParser
+from copter_connection import get_copter_instance
+from routers.movement import movement_router
+from routers.command import command_router
+from routers.telemetry import telemetry_router
+import uvicorn
+
 parser = ArgumentParser()
-
-parser.add_argument(
-    '--port',
-    dest='port',
-    default=8000,
-    help='Port for api to run on'
-)
-
-parser.add_argument(
-    '--uav_connection',
-    dest='uav_connection',
-    default=None,
-    help='Address used for copter connection'
-)
-
-parser.add_argument(
-    '--connection_type',
-    dest='connection_type',
-    default='udpin',
-    help="Connection type (client or server) for copter. Either udpin or udpout"
-)
-
-parser.add_argument(
-    '--sysid',
-    dest='sysid',
-    default=None,
-    help='Sysid for Copter'
-)
-
+parse_api(parser)
 args = parser.parse_args()
 
-if args.uav_connection == None:
-    raise Exception("No uav_connection received")
-
-copter = get_copter_instance(args.sysid, f"{args.connection_type}:{args.uav_connection}")
+if __name__ == '__main__':
+    uvicorn.run("uav_api:app", host="0.0.0.0", port=int(args.port), log_level="info", reload=True)
+    exit()
 
 metadata = [
     {
@@ -68,6 +40,8 @@ description = f"""
 * CONNECTION_STRING = **{args.uav_connection}**
 """
 
+copter = get_copter_instance(args.sysid, f"{args.connection_type}:{args.uav_connection}")
+
 app = FastAPI(
     title="UavControl API",
     summary=f"API designed to simplify Copter control with Ardupilot",
@@ -82,8 +56,3 @@ app = FastAPI(
 app.include_router(movement_router)
 app.include_router(command_router)
 app.include_router(telemetry_router)
-app.include_router(mission_router)
-print("STARTING API")
-if __name__ == '__main__':
-    import uvicorn
-    uvicorn.run("uav_api:app", host="0.0.0.0", port=int(args.port), log_level="info", reload=True)
