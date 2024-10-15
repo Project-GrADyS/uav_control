@@ -16,13 +16,14 @@ class TestProtocol(IProtocol):
         self.initial_pos = self.points[self.id]
         self.next_point_id = self.id
         self._go_to_next_point()
-        self.provider.schedule_timer("next_point", 10)
+        self.provider.schedule_timer("next_point", self.provider.current_time() + 20)
 
     def handle_timer(self, timer: str) -> None:
+        print("timer received")
         if timer == "next_point":
             self._go_to_next_point()
             if self.next_point_id != self.id:
-                self.provider.schedule_timer("next_point", 10)
+                self.provider.schedule_timer("next_point", self.provider.current_time() + 20)
     def handle_telemetry(self, telemetry: Telemetry) -> None:
         pass
     def finish(self) -> None:

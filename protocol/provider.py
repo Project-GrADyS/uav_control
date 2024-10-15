@@ -34,7 +34,7 @@ class UavControlProvider(IProvider):
             }
             requests.post(self.api_url+"/movement/go_to_gps", json=data)
     def schedule_timer(self, timer: str, timestamp: float) -> None:
-        self.timers.append((timer, timestamp))
+        self.timers.append((timestamp, timer))
 
     # def cancel_timer(self, timer: str) -> None:
     #     """

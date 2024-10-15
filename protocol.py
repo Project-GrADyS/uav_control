@@ -2,6 +2,8 @@ from argparse import ArgumentParser
 from protocol.test import TestProtocol
 import requests
 from protocol.provider import UavControlProvider
+from time import time
+import heapq
 
 parser = ArgumentParser()
 
@@ -62,6 +64,27 @@ def setup():
 
 def start_protocol():
     protocol.initialize()
+
+    timers = []
+    protocol_time = 0
+    timestamp = time()
+    while True:
+        now = time()
+        protocol_time += now - timestamp
+        print(protocol_time)
+        protocol.provider.time = protocol_time
+        new_timers = protocol.provider.collect_timers()
+        for timer in new_timers:
+            heapq.heappush(timers, timer)
+        if len(timers) == 0:
+            continue
+        next_timer = timers[0]
+        if protocol_time >= next_timer[0]:
+            print(f"[PROTOCOL PROCCESS] calling handle timer {next_timer[1]}")
+            protocol.handle_timer(next_timer[1])
+            heapq.heappop(timers)
+        timestamp = now
+        
 
 print(f"Starting Protocol process for UAV {args.sysid}")
 
