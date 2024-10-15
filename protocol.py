@@ -1,9 +1,12 @@
 from argparse import ArgumentParser
+from protocol.messages.telemetry import Telemetry
 from protocol.test import TestProtocol
 import requests
 from protocol.provider import UavControlProvider
 from time import time
 import heapq
+
+TELEMETRY_INTERVAL = 0.1 # Interval between telemetry calls in seconds
 
 parser = ArgumentParser()
 
@@ -68,23 +71,33 @@ def start_protocol():
     timers = []
     protocol_time = 0
     timestamp = time()
+    telemetry_timestamp = 0
     while True:
         now = time()
         protocol_time += now - timestamp
-        print(protocol_time)
         protocol.provider.time = protocol_time
+        
+        # Timer Handling
         new_timers = protocol.provider.collect_timers()
         for timer in new_timers:
             heapq.heappush(timers, timer)
-        if len(timers) == 0:
-            continue
-        next_timer = timers[0]
-        if protocol_time >= next_timer[0]:
-            print(f"[PROTOCOL PROCCESS] calling handle timer {next_timer[1]}")
-            protocol.handle_timer(next_timer[1])
-            heapq.heappop(timers)
-        timestamp = now
-        
+        if len(timers) != 0:
+            next_timer = timers[0]
+            if protocol_time >= next_timer[0]:
+                print(f"[PROTOCOL PROCCESS] calling handle timer {next_timer[1]}")
+                protocol.handle_timer(next_timer[1])
+                heapq.heappop(timers)
+
+        # Telemetry Handling
+        if protocol_time >= (telemetry_timestamp + TELEMETRY_INTERVAL):
+            ned_result = requests.get(f"{args.api}/telemetry/ned")
+            if ned_result.status_code != 200:
+                raise Exception("Fail to get NED Telemetry")
+            ned_pos = ned_result.json()["info"]["position"]
+            telemetry_msg = Telemetry((ned_pos["x"], ned_pos["y"], ned_pos["z"]))
+            protocol.handle_telemetry(telemetry_msg)
+            telemetry_timestamp = protocol_time
+        timestamp = now        
 
 print(f"Starting Protocol process for UAV {args.sysid}")
 
