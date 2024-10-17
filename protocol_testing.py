@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 import os
+import requests
 
 parser = ArgumentParser()
 
@@ -38,3 +39,9 @@ for i in range(args.n):
 cmd = ""
 while cmd != "stop_protocol":
     cmd = input()
+    if cmd == "setup":
+        for i in range(args.n):
+            result = requests.get(f"http://localhost:{8000+i}/protocol/setup")
+    if cmd == "start":
+        for i in range(args.n):
+            result = requests.get(f"http://localhost:{8000+i}/protocol/start")
