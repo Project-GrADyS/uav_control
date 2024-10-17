@@ -1,12 +1,38 @@
 from argparse import ArgumentParser
+from protocol.interface import IProtocol, IProvider
 from protocol.messages.telemetry import Telemetry
-from protocol.test import TestProtocol
 import requests
 from protocol.provider import UavControlProvider
 from time import time
 import heapq
+import importlib
+import os
+from time import sleep
+import signal
 
 TELEMETRY_INTERVAL = 0.1 # Interval between telemetry calls in seconds
+
+def get_protocol(protocol_name: str) -> IProtocol:
+    protocol_path = None
+    try:
+        file_path = os.path.expanduser('~/.config/gradys/protocol.txt')
+        with open(file_path, 'r') as file:
+            for line in file:
+                p_name, p_class = line.strip().split(" ")
+                if p_name == protocol_name:
+                    protocol_path = p_class
+                    break
+        if protocol_path == None:
+            return None
+        module = importlib.import_module(protocol_path)
+        print(module)
+        return module.Protocol
+    except FileNotFoundError:
+        print("Error: File not found at ~/.config/gradys/protocol.txt")
+    except PermissionError:
+        print("Error: Permission denied when trying to access the file")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 parser = ArgumentParser()
 
@@ -32,10 +58,21 @@ parser.add_argument(
     help="Initial position of UAV in protocol execution"
 )
 
+parser.add_argument(
+    '--protocol',
+    dest='protocol',
+    required=True,
+    help="Name of Protocol to run"
+)
+
 args = parser.parse_args()
 
-provider = UavControlProvider(args.sysid, args.api)
-protocol = TestProtocol.instantiate(provider)
+
+protocol_class = get_protocol(args.protocol)
+
+provider: IProvider = UavControlProvider(args.sysid, args.api)
+protocol = protocol_class.instantiate(provider)
+
 
 def setup():
     print(f"-----STARTING UAV-{args.sysid} SETUP-----")
@@ -101,12 +138,32 @@ def start_protocol():
 
 print(f"Starting Protocol process for UAV {args.sysid}")
 
-cmd = ""
-cmd_list = {
+command_table = {
     "setup": setup,
-    "start": start_protocol
+    "start": start_protocol,
 }
-while cmd !="stop":
-    cmd = input()
-    cmd_list[cmd]()
-    
+command_task = {
+    "setup": 0,
+    "start": 0
+}
+
+def handler(signum, frame):
+    print('Signal Number: ', signum, " Frame: ", frame)
+    if signum == signal.SIGUSR1:
+        command_task["setup"] = 1
+    elif signum == signal.SIGUSR2:
+        command_task["start"] = 1
+
+signal.signal(signal.SIGUSR1, handler)
+signal.signal(signal.SIGUSR2, handler)
+
+def execute_tasks():
+    for task, on in command_task.items():
+        if on:
+            command_table[task]()
+            command_task[task] = 0
+
+print ("[PROTOCOL] PID =", os.getpid())
+while True:
+    signal.pause()
+    execute_tasks()

@@ -1,11 +1,11 @@
 from protocol.messages.mobility import GotoCoordsMobilityCommand
 from protocol.interface import IProtocol, IProvider
-
+import importlib
 from protocol.messages.telemetry import Telemetry
 
 ACCURACY = 3
 
-class TimeProtocol(IProtocol):
+class Protocol(IProtocol):
 
     def _go_to_next_point(self):
         self.next_point_id = (self.next_point_id + 1) % 4
@@ -31,7 +31,7 @@ class TimeProtocol(IProtocol):
     def finish(self) -> None:
         pass
 
-class TestProtocol(IProtocol):
+class TelemetryProtocol(IProtocol):
     
     def _go_to_next_point(self):
         self.next_point_id = (self.next_point_id + 1) % 4

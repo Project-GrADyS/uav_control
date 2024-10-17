@@ -115,3 +115,10 @@ def parse_protocol(protocol_parser):
         default='[0,0,50]',
         help="Initial position of node in the protocol execution"
     )
+
+    protocol_parser.add_argument(
+        '--protocol_name',
+        dest='protocol_name',
+        default='TestProtocol',
+        help='Uav Protocol to run'
+    )

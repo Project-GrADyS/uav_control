@@ -1,4 +1,4 @@
-if [[ ! "~/.condig/ardupilot" ]]
+if [[ ! "~/.config/ardupilot" ]]
 then
     mkdir ~/.config/ardupilot
 fi
