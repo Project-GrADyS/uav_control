@@ -19,12 +19,16 @@ def get_protocol(protocol_name: str) -> IProtocol:
         with open(file_path, 'r') as file:
             for line in file:
                 p_name, p_class = line.strip().split(" ")
+                print("p_name", p_name)
+                print("protocol_name", protocol_name)
                 if p_name == protocol_name:
                     protocol_path = p_class
                     break
         if protocol_path == None:
             return None
+        print(protocol_path)
         module = importlib.import_module(protocol_path)
+        print(module)
         print(module)
         return module.Protocol
     except FileNotFoundError:
