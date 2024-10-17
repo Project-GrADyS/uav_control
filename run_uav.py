@@ -15,11 +15,4 @@ if args.simulated:
     os.system(sitl_command)
 
 api_command = f"python3 uav_api.py --uav_connection {args.uav_connection} --port {args.port} --sysid {args.sysid} --connection_type {args.connection_type}"
-
-if args.protocol:
-    protocol_command = f"python3 protocol.py --protocol {args.protocol_name} --sysid {args.sysid} --api http://localhost:{args.port} --pos {args.pos}".split(" ")
-    protocol_process = Popen(protocol_command)
-    print("p_pid", protocol_process.pid)
-    api_command += f" --protocol_pid {protocol_process.pid}"
-
 os.system(api_command)

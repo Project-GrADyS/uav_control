@@ -119,6 +119,6 @@ def parse_protocol(protocol_parser):
     protocol_parser.add_argument(
         '--protocol_name',
         dest='protocol_name',
-        default='TestProtocol',
+        default='',
         help='Uav Protocol to run'
     )
