@@ -6,17 +6,19 @@ from routers.movement import movement_router
 from routers.command import command_router
 from routers.telemetry import telemetry_router
 from routers.protocol import protocol_router
-from protocol_pid import get_protocol_pid
 import uvicorn
-from multiprocessing import Process, Queue
-from protocol import start_protocol
+from multiprocessing import Process
+from protocol_queue import get_protocol_queue, set_protocol_args
+from uav_protocol import start_protocol
 parser = ArgumentParser()
 parse_api(parser)
 parse_protocol(parser)
 
+global args
 args = parser.parse_args()
-if __name__ == '__main__':
-    uvicorn.run("uav_api:app", host="0.0.0.0", port=int(args.port), log_level="info", reload=True)join()
+
+if __name__ == '__main__':      
+    uvicorn.run("uav_api:app", host="0.0.0.0", port=int(args.port), log_level="info", reload=True)
     exit()
 
 metadata = [
@@ -49,6 +51,7 @@ description = f"""
 """
 
 copter = get_copter_instance(args.sysid, f"{args.connection_type}:{args.uav_connection}")
+set_protocol_args(args.protocol_name, args.port, args.sysid, args.pos)
 
 app = FastAPI(
     title="UavControl API",
@@ -64,9 +67,5 @@ app = FastAPI(
 app.include_router(movement_router)
 app.include_router(command_router)
 app.include_router(telemetry_router)
-if args.protocol != "":
-    shared_q = get_protocol_queue()
-    protocol_process = Process(target=start_protocol, args=(protocol_name, f"http://localhost:{args.port}", args.sysid, args.pos, shared_q))
-    protocol_process.start()
+if args.protocol_name != "":
     app.include_router(protocol_router)
-    protocol_process.join()
