@@ -37,7 +37,7 @@ def get_protocol(protocol_name: str) -> IProtocol:
     except Exception as e:
         protocol_print(f"An error occurred: {e}")
 
-def setup():
+def setup(sysid, api, pos):
     protocol_print(f"-----STARTING UAV-{sysid} SETUP-----")
     # Arming uav
     protocol_print("Arming...")
@@ -65,7 +65,7 @@ def setup():
         protocol_print("Arrived.")
     print(f"-----UAV-{sysid} SETUP COMPLETED-----")
 
-def start_execution():
+def start_execution(protocol):
     protocol_print("Starting Execution.")
     protocol.initialize()
     tick_task["timer"] = 1
@@ -95,19 +95,19 @@ def telemetry_handler(protocol, api):
     telemetry_msg = Telemetry((ned_pos["x"], ned_pos["y"], ned_pos["z"]))
     protocol.handle_telemetry(telemetry_msg)
 
-def queue_handler(protocol, queue):
+def queue_handler(protocol, sysid, api, pos, queue):
     protocol_print(f"Queue: {queue}")
     command = queue.get()
     protocol_print(f"command: {command}")
     if command["type"] == "setup":
-        setup()
+        setup(sysid, api, pos)
     elif command["type"] == "start":
-        start_execution()
+        start_execution(protocol)
         
 def do_tick(protocol, api, sysid, timer_heap, extern_queue):
     timer_handler(protocol, timer_heap)
     telemetry_handler(protocol, api)
-    queue_handler(protocol, extern_queue)
+    queue_handler(protocol, sysid, api, pos, extern_queue)
 
 def start_protocol(protocol_name, api, sysid, pos, extern_queue):
     print(f"Starting Protocol process for UAV {sysid}...")
@@ -119,7 +119,7 @@ def start_protocol(protocol_name, api, sysid, pos, extern_queue):
     # wait for setup and started commands
     started = False
     while not started:
-        queue_handler(protocol, extern_queue)
+        queue_handler(protocol, sysid, api, pos, extern_queue)
         sleep(1)
 
     timer_heap = []

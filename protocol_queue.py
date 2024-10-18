@@ -19,6 +19,7 @@ p_queue = None
 def get_protocol_queue():
     global p_queue
     global uav_args
+    print(f"uav_args: {uav_args}")
     if uav_args != None:
         p_queue = Queue()
         protocol_process = Process(target=start_protocol, args=(uav_args["protocol_name"], f"http://localhost:{uav_args['port']}", uav_args["sysid"], uav_args["pos"], p_queue))
