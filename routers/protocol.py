@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends
-import os
-from protocol_queue import get_protocol_queue
-import signal
+from protocol_connection import get_protocol_queue
 
 protocol_router = APIRouter(
     prefix="/protocol",
@@ -15,3 +13,7 @@ def setup(protocol_queue = Depends(get_protocol_queue)):
 @protocol_router.get("/start", tags=["protocol"], summary="Start UAV protocol execution")
 def start(protocol_queue = Depends(get_protocol_queue)):
     protocol_queue.put({"type": "start"})
+
+@protocol_router.get("/message", tags=["protocol"], summary="Send message to UAV protocol")
+def send_message(packet: str, protocol_queue = Depends(get_protocol_queue)):
+    protocol_queue.put({"type": "message", "packet": packet})

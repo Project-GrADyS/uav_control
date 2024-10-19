@@ -139,16 +139,16 @@ class IProtocol(ABC):
         """
         pass
 
-    # @abstractmethod
-    # def handle_packet(self, message: str) -> None:
-    #     """
-    #     Called when a packet is received from another node. The packet contains a message which can be an identifier,
-    #     some serialized data, or anything else that can be represented as a string.
+    @abstractmethod
+    def handle_packet(self, message: str) -> None:
+        """
+        Called when a packet is received from another node. The packet contains a message which can be an identifier,
+        some serialized data, or anything else that can be represented as a string.
 
-    #     Args:
-    #         message: the message contained in the packet
-    #     """
-    #     pass
+        Args:
+            message: the message contained in the packet
+        """
+        pass
 
     @abstractmethod
     def handle_telemetry(self, telemetry: Telemetry) -> None:

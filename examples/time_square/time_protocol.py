@@ -24,5 +24,10 @@ class Protocol(IProtocol):
                 self.provider.schedule_timer("next_point", self.provider.current_time() + 20)
     def handle_telemetry(self, telemetry: Telemetry) -> None:
         pass
+
+    def handle_packet(self, message: str) -> None:
+        print("-----MESSAGE RECEIVED-----")
+        print(message)
+
     def finish(self) -> None:
         pass

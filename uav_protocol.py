@@ -3,18 +3,17 @@ from protocol.interface import IProtocol, IProvider
 from protocol.messages.telemetry import Telemetry
 import requests
 from protocol.provider import UavControlProvider
-from time import time
+import time
 import heapq
 import importlib
 import os
-import time
-import signal
 import heapq
 
 TICK_INTERVAL = 0.05 # Interval between telemetry calls in seconds
 
 def protocol_print(txt):
-    print(f"[PROTOCOL] {txt}")
+    global sysid
+    print(f"[PROTOCOL-{sysid}] {txt}")
 
 def get_protocol(protocol_name: str) -> IProtocol:
     protocol_path = None
@@ -37,10 +36,13 @@ def get_protocol(protocol_name: str) -> IProtocol:
     except Exception as e:
         protocol_print(f"An error occurred: {e}")
 
-def setup(sysid, api, pos):
+def setup():
+    global sysid, api, pos
     protocol_print(f"-----STARTING UAV-{sysid} SETUP-----")
     # Arming uav
     protocol_print("Arming...")
+    print("API", api)
+    print("SYSID", sysid)
     arm_result = requests.get(f"{api}/command/arm")
     if arm_result.status_code != 200:
         raise Exception(F"UAV {sysid} not armed")
@@ -65,14 +67,15 @@ def setup(sysid, api, pos):
         protocol_print("Arrived.")
     print(f"-----UAV-{sysid} SETUP COMPLETED-----")
 
-def start_execution(protocol):
+def start_execution():
+    global started, protocol
     protocol_print("Starting Execution.")
     protocol.initialize()
-    tick_task["timer"] = 1
-    tick_task["telemetry"] = 1
     started = True
 
-def timer_handler(protocol, heapq):
+def timer_handler():
+    global protocol, protocol_time, timers
+    print("timers", timers)
     # Timer Handling
     protocol.provider.time = protocol_time
         
@@ -86,7 +89,8 @@ def timer_handler(protocol, heapq):
         protocol.handle_timer(next_timer[1])
         heapq.heappop(timers)
 
-def telemetry_handler(protocol, api):
+def telemetry_handler():
+    global protocol, api
     # Telemetry Handling
     ned_result = requests.get(f"{api}/telemetry/ned")
     if ned_result.status_code != 200:
@@ -95,39 +99,53 @@ def telemetry_handler(protocol, api):
     telemetry_msg = Telemetry((ned_pos["x"], ned_pos["y"], ned_pos["z"]))
     protocol.handle_telemetry(telemetry_msg)
 
-def queue_handler(protocol, sysid, api, pos, queue):
-    protocol_print(f"Queue: {queue}")
-    command = queue.get()
+def queue_handler():
+    global protocol, sysid, api, pos, queue
+    try:
+        command = queue.get(block=False)
+    except:
+        return
     protocol_print(f"command: {command}")
     if command["type"] == "setup":
-        setup(sysid, api, pos)
+        setup()
     elif command["type"] == "start":
-        start_execution(protocol)
+        start_execution()
+    elif command["type"] == "message":
+        protocol.handle_packet(command["packet"])
         
-def do_tick(protocol, api, sysid, timer_heap, extern_queue):
-    timer_handler(protocol, timer_heap)
-    telemetry_handler(protocol, api)
-    queue_handler(protocol, sysid, api, pos, extern_queue)
+def do_tick():
+    timer_handler()
+    telemetry_handler()
+    queue_handler()
 
-def start_protocol(protocol_name, api, sysid, pos, extern_queue):
-    print(f"Starting Protocol process for UAV {sysid}...")
+def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue):
+    global started, protocol, api, sysid, queue, pos, timers, protocol_time
+
     protocol_class = get_protocol(protocol_name)
-
+    api = api_arg
+    sysid = sysid_arg
+    pos = pos_arg
+    queue = extern_queue
+    timers = []
     provider: IProvider = UavControlProvider(sysid, api)
     protocol = protocol_class.instantiate(provider)
+    protocol_time = 0
+    
+    print(f"Starting Protocol process for UAV {sysid}...")
+
 
     # wait for setup and started commands
     started = False
     while not started:
-        queue_handler(protocol, sysid, api, pos, extern_queue)
-        sleep(1)
-
-    timer_heap = []
-    protocol_time = 0
+        queue_handler()
+        time.sleep(1)
+    protocol_print("started")
     last_tick = - TICK_INTERVAL
-    while True:
-        time_start = time.process_time()
-        if protocol_time >= last_tick + TICK_INTERVAL:    
-            do_tick(protocol, api, sysid, timer_heap, extern_queue)
-        time_end = time.process_time()
-        time += time_end - time_start
+    while started:
+        time_start = time.time()
+        if protocol_time >= last_tick + TICK_INTERVAL:  
+            print("PROTOCOL-TIME", protocol_time)
+            do_tick()
+            last_tick = protocol_time
+        time_end = time.time()
+        protocol_time += time_end - time_start

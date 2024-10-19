@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
 from args.uav_args import parse_api, parse_protocol
 from argparse import ArgumentParser
 from copter_connection import get_copter_instance
@@ -7,14 +8,11 @@ from routers.command import command_router
 from routers.telemetry import telemetry_router
 from routers.protocol import protocol_router
 import uvicorn
-from multiprocessing import Process
-from protocol_queue import get_protocol_queue, set_protocol_args
-from uav_protocol import start_protocol
+from protocol_connection import create_protocol
 parser = ArgumentParser()
 parse_api(parser)
 parse_protocol(parser)
 
-global args
 args = parser.parse_args()
 
 if __name__ == '__main__':      
@@ -50,8 +48,16 @@ description = f"""
 * CONNECTION_STRING = **{args.uav_connection}**
 """
 
-copter = get_copter_instance(args.sysid, f"{args.connection_type}:{args.uav_connection}")
-set_protocol_args(args.protocol_name, args.port, args.sysid, args.pos)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    get_copter_instance(args.sysid, f"{args.connection_type}:{args.uav_connection}")
+    
+    # Initialize protocol thread
+    protocol_t, protocol_q = create_protocol(args.protocol_name, args.port, args.sysid, args.pos)
+    yield
+    protocol_q.put({"type": "end"})
+    protocol_t.join()
 
 app = FastAPI(
     title="UavControl API",
@@ -62,7 +68,8 @@ app = FastAPI(
         "name": "Francisco Fleury",
         "email": "franmeifleury@gmail.com",
     },
-    openapi_tags=metadata
+    openapi_tags=metadata,
+    lifespan=lifespan
 )
 app.include_router(movement_router)
 app.include_router(command_router)
