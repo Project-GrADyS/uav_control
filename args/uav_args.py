@@ -122,3 +122,11 @@ def parse_protocol(protocol_parser):
         default='',
         help='Uav Protocol to run'
     )
+
+    protocol_parser.add_argument(
+        '--collaborators',
+        dest='collaborators',
+        default=[],
+        help='Uav collaborators api list. Format should be [<]',
+        nargs='*'
+    )
