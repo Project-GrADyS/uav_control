@@ -25,7 +25,14 @@ class UavControlProvider(IProvider):
             if message_result.status_code != 200:
                 self._provider_report(f"Unable to send message to UAV api at address: {self.collaborators[command.destination]}")
                 return
-            self._provider_report(f"Message sent successfully to addres: {self.collaborators[command.destination]}")
+            self._provider_report(f"Message sent successfully to address: {self.collaborators[command.destination]}")
+        elif command.command_type == CommunicationCommandType.BROADCAST:
+            for c_sysid, c_api in self.collaborators.items():
+                message_result = requests.get(f"{c_api}/protocol/message", params={"packet": command.message})
+                if message_result.status_code != 200:
+                    self._provider_report(f"Unable to send broadcast message to UAV {c_sysid} api at addres: {c_api}")
+                    continue
+                self._provider_report(f"Broadcast message sent successfully to: (sysid={c_sysid},api{c_api})")
 
     def send_mobility_command(self, command: MobilityCommand) -> None:
         if command.command_type == MobilityCommandType.GOTO_COORDS:

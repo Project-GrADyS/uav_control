@@ -1,5 +1,5 @@
 from protocol.messages.mobility import GotoCoordsMobilityCommand
-from protocol.messages.communication import SendMessageCommand
+from protocol.messages.communication import SendMessageCommand, BroadcastMessageCommand
 from protocol.interface import IProtocol
 from protocol.messages.telemetry import Telemetry
 
@@ -10,7 +10,7 @@ class Protocol(IProtocol):
 
     def initialize(self) -> None:
         # Send message to next uav
-        self.provider.send_communication_command(SendMessageCommand(f"Hell friend, Im {self.provider.get_id()}", 10 + ((self.provider.get_id()-9) % 4)))
+        self.provider.send_communication_command(BroadcastMessageCommand(f"Hell friend, Im {self.provider.get_id()}"))
     
     def handle_packet(self, message: str) -> None:
         self._protocol_report("Message received!\n"+message)

@@ -9,7 +9,7 @@ import importlib
 import os
 import heapq
 
-TICK_INTERVAL = 0.05 # Interval between telemetry calls in seconds
+TICK_INTERVAL = 0.5 # Interval between telemetry calls in seconds
 
 def protocol_print(txt):
     global sysid
