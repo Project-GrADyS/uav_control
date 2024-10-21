@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from args.uav_args import parse_api, parse_protocol
+from args.uav_args import parse_args
 from argparse import ArgumentParser
 from copter_connection import get_copter_instance
 from routers.movement import movement_router
@@ -9,11 +9,9 @@ from routers.telemetry import telemetry_router
 from routers.protocol import protocol_router
 import uvicorn
 from protocol_connection import create_protocol
-parser = ArgumentParser()
-parse_api(parser)
-parse_protocol(parser)
+import os
 
-args = parser.parse_args()
+args = parse_args()
 
 if __name__ == '__main__':      
     uvicorn.run("uav_api:app", host="0.0.0.0", port=int(args.port), log_level="info", reload=True)
@@ -51,13 +49,22 @@ description = f"""
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    get_copter_instance(args.sysid, f"{args.connection_type}:{args.uav_connection}")
-    
+    # Start SITL
+    if args.simulated:
+        sitl_command = f"xterm -e {args.ardupilot_path}/Tools/autotest/sim_vehicle.py -v ArduCopter -I {args.sysid} --sysid {args.sysid} -N -L {args.location} --speedup {args.speedup} --out {args.uav_connection} {' '.join([f'--out {address}' for address in args.gs_connection])} &"
+        os.system(sitl_command)
     # Initialize protocol thread
-    protocol_t, protocol_q = create_protocol(args.protocol_name, args.port, args.sysid, args.pos, args.collaborators)
+    if args.protocol:
+        protocol_t, protocol_q = create_protocol(args.protocol_name, args.port, args.sysid, args.pos, args.collaborators)
+    get_copter_instance(args.sysid, f"{args.connection_type}:{args.uav_connection}")
     yield
-    protocol_q.put({"type": "end"})
-    protocol_t.join()
+    # Close protocol thread
+    if args.protocol:
+        protocol_q.put({"type": "end"})
+        protocol_t.join()
+    # Close SITL
+    if args.simulated:
+        os.system("pkill xterm")
 
 app = FastAPI(
     title="UavControl API",
