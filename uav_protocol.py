@@ -9,7 +9,7 @@ import importlib
 import os
 import heapq
 
-TICK_INTERVAL = 0.05 # Interval between telemetry calls in seconds
+TICK_INTERVAL = 0.5 # Interval between telemetry calls in seconds
 
 def protocol_print(txt):
     global sysid
@@ -112,13 +112,25 @@ def queue_handler():
         start_execution()
     elif command["type"] == "message":
         protocol.handle_packet(command["packet"])
+    elif command["type"] == "end":
+        exit()
         
 def do_tick():
     timer_handler()
     telemetry_handler()
     queue_handler()
 
-def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue):
+def build_collaborator_table(collab_list):
+    colab_table = {}
+    print("collab_list", collab_list)
+    for collab in collab_list:
+        c_id, c_api = collab.strip("[]").split(",")
+        print("c_id", c_id)
+        print("c_api", c_api)
+        colab_table[int(c_id)] = c_api
+    return colab_table
+
+def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue, collaborators):
     global started, protocol, api, sysid, queue, pos, timers, protocol_time
 
     protocol_class = get_protocol(protocol_name)
@@ -127,7 +139,8 @@ def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue):
     pos = pos_arg
     queue = extern_queue
     timers = []
-    provider: IProvider = UavControlProvider(sysid, api)
+    colab_table = build_collaborator_table(collaborators)
+    provider: IProvider = UavControlProvider(sysid, api, colab_table)
     protocol = protocol_class.instantiate(provider)
     protocol_time = 0
     

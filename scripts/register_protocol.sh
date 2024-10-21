@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Variables
-DIRECTORY=~/.config/gradys  # Replace with your directory name
-FILE=protocol.txt         # Replace with your file name
+DIRECTORY=~/.config/gradys
+FILE=protocol.txt
 
 # Check if directory exists
 if [ ! -d "$DIRECTORY" ]; then

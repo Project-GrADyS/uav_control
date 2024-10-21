@@ -1,22 +1,38 @@
 from protocol.interface import IProvider
-from protocol.messages.mobility import MobilityCommand, GotoCoordsMobilityCommand, GotoGeoCoordsMobilityCommand, MobilityCommandType
+from protocol.messages.mobility import MobilityCommand, MobilityCommandType
+from protocol.messages.communication import CommunicationCommand, CommunicationCommandType
 import requests
 
 class UavControlProvider(IProvider):
-    def __init__(self, sysid, api_url):
+    def _provider_report(self, txt):
+        print(f"[PROVIDER-{self.id}] {txt}")
+
+    def __init__(self, sysid, api_url, collaborators):
         self.id = sysid
         self.api_url = api_url
         self.timers = []
         self.time = -1
+        self.collaborators: dict = collaborators
+        self._provider_report(collaborators)
 
-    # def send_communication_command(self, command: CommunicationCommand) -> None:
-    #     """
-    #     Sends a communication command to the node's communication module
-
-    #     Args:
-    #         command: the communication command to send
-    #     """
-    #     pass
+    def send_communication_command(self, command: CommunicationCommand) -> None:
+        if command.command_type == CommunicationCommandType.SEND:
+            if command.destination not in self.collaborators.keys():
+                self._provider_report(f"Destination {command.destination} not found in collaborators's UAV list.\nIgnoring command...")
+                return
+            message_result = requests.get(f"{self.collaborators[command.destination]}/protocol/message", params={"packet": command.message})
+            print(self.collaborators[command.destination])
+            if message_result.status_code != 200:
+                self._provider_report(f"Unable to send message to UAV api at address: {self.collaborators[command.destination]}")
+                return
+            self._provider_report(f"Message sent successfully to address: {self.collaborators[command.destination]}")
+        elif command.command_type == CommunicationCommandType.BROADCAST:
+            for c_sysid, c_api in self.collaborators.items():
+                message_result = requests.get(f"{c_api}/protocol/message", params={"packet": command.message})
+                if message_result.status_code != 200:
+                    self._provider_report(f"Unable to send broadcast message to UAV {c_sysid} api at addres: {c_api}")
+                    continue
+                self._provider_report(f"Broadcast message sent successfully to: (sysid={c_sysid},api{c_api})")
 
     def send_mobility_command(self, command: MobilityCommand) -> None:
         if command.command_type == MobilityCommandType.GOTO_COORDS:

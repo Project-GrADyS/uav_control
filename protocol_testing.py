@@ -33,7 +33,9 @@ args = parser.parse_args()
 for i in range(args.n):
     connection = f"127.0.0.1:17{171 + i}"
     port = 8000 + i
-    uav_command = f"python3 run_uav.py --simulated true --protocol true --sysid {10+i} --pos {args.pos_list[i]} --uav_connection {connection} --port {port} --protocol_name {args.protocol_names[i]} &"
+    sysid = 10 + i
+    collaborators = ' '.join([f"[{10+j},http://localhost:{8000+j}]" for j in range(args.n) if j != i])
+    uav_command = f"python3 uav_api.py --simulated true --protocol true --sysid {sysid} --pos {args.pos_list[i]} --uav_connection {connection} --port {port} --protocol_name {args.protocol_names[i]} --collaborators {collaborators} &"
     os.system(uav_command)
 
 cmd = ""
