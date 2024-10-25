@@ -21,6 +21,9 @@ class Protocol(IProtocol):
     def handle_timer(self, timer: str) -> None:
         pass
 
+    def handle_packet(self, message: str) -> None:
+        pass
+
     def handle_telemetry(self, telemetry: Telemetry) -> None:
         diff = abs(telemetry.current_position[0] - self.next_point[0]) + abs(telemetry.current_position[1] - self.next_point[1]) + abs(telemetry.current_position[2] + self.next_point[2])
         if diff < ACCURACY:
