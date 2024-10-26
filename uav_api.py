@@ -80,5 +80,5 @@ app = FastAPI(
 app.include_router(movement_router)
 app.include_router(command_router)
 app.include_router(telemetry_router)
-if args.protocol_name != "":
+if args.protocol:
     app.include_router(protocol_router)
