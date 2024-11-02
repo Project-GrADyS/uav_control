@@ -16,14 +16,9 @@ class Movement(BaseModel):
 @command_router.get("/arm", tags=["command"])
 def arm(uav: Copter = Depends(get_copter_instance)):
     try:
-        print(uav)
-        print("request to arm")
         uav.change_mode("GUIDED")
-        print("mode guided")
         uav.wait_ready_to_arm()
-        print("ready to arm")
         uav.arm_vehicle()
-        print("has armed")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"ARM_COMMAND FAIL: {e}")
     result = "Armed vehicle" if uav.armed() else "Disarmed vehicle"
