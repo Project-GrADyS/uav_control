@@ -4,6 +4,7 @@ def parse_args():
     parser = ArgumentParser(description="Welcome to the UAV Runner, this script runs an API that interfaces with Ardupilots instances (real or simulated).")
     parse_mode(parser)
     parse_api(parser)
+    parse_logs(parser)
     partial_args, _ = parser.parse_known_args()
     if partial_args.simulated:
         parse_simulated(parser)
@@ -151,7 +152,7 @@ def parse_logs(logs_parser):
     logs_parser.add_argument(
         "--log_path",
         dest="log_path",
-        default=None,
+        default="",
         help="If provided, saves log files to path."
     )
 

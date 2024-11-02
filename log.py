@@ -43,9 +43,9 @@ def set_log_config(args):
         if args.log_path != "":
             handlers.append("file_handler")
         
-        if name in args.console:
+        if name in args.log_console:
             handlers.append("console_handler")
 
-        logging_config["loggers"][name]["handler"] = handlers
+        logging_config["loggers"][name]["handlers"] = handlers
 
-    logging.config.dict_config(logging_config)
+    logging.config.dictConfig(logging_config)

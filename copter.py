@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import datetime
+import logging
 
 from pymavlink import mavwp
 from MAVProxy.modules.lib import mp_util
@@ -125,19 +126,7 @@ class Copter:
         self.wploader = mavwp.MAVWPLoader()
         self.wp_requested = {}
         self.wp_expected_count = 0
-
-    @staticmethod
-    def progress(text):
-        """Utility to print message with current time."""
-        now = datetime.datetime.now()
-        formatted_text = "AT %s: %s" % (now.strftime('%H:%M:%S'), text)
-        print(formatted_text)
-
-    @staticmethod
-    def longitude_scale(lat):
-        ret = math.cos(lat * (math.radians(1)))
-        print("scale=%f" % ret)
-        return ret
+        self.logger = logging.getLogger("COPTER")
 
     @staticmethod
     def get_distance(loc1, loc2):
@@ -197,6 +186,15 @@ class Copter:
         return Copter.get_distance_accurate(
             mavutil.location(loc1_lat * 1e-7, loc1_lon * 1e-7),
             mavutil.location(loc2_lat * 1e-7, loc2_lon * 1e-7))
+
+    def progress(self, text):
+        """Utility to print message with current time."""
+        self.logger.info(text)
+
+    def longitude_scale(self, lat):
+        ret = math.cos(lat * (math.radians(1)))
+        self.logger.debug("scale=%f" % ret)
+        return ret
 
     def connect(self, connection_string='udpin:0.0.0.0:14550'):
         """Set the connection with the drone.
@@ -1193,7 +1191,7 @@ Also, ignores heartbeats not from our target system"""
                     break
         for i in range(self.wploader.count()):
             w = self.wploader.wp(i)
-            print("%u %u %.10f %.10f %f p1=%.1f p2=%.1f p3=%.1f p4=%.1f cur=%u auto=%u" % (
+            self.logger.debug("%u %u %.10f %.10f %f p1=%.1f p2=%.1f p3=%.1f p4=%.1f cur=%u auto=%u" % (
                 w.command, w.frame, w.x, w.y, w.z,
                 w.param1, w.param2, w.param3, w.param4,
                 w.current, w.autocontinue))

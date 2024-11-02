@@ -1,3 +1,6 @@
+import os
+import uvicorn
+
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from uav_args import parse_args
@@ -6,9 +9,8 @@ from routers.movement import movement_router
 from routers.command import command_router
 from routers.telemetry import telemetry_router
 from routers.protocol import protocol_router
-import uvicorn
 from protocol_connection import create_protocol
-import os
+from log import set_log_config
 
 args = parse_args()
 
@@ -48,6 +50,8 @@ description = f"""
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Configure loggers
+    set_log_config(args)
     # Start SITL
     if args.simulated:
         sitl_command = f"xterm -e {args.ardupilot_path}/Tools/autotest/sim_vehicle.py -v ArduCopter -I {args.sysid} --sysid {args.sysid} -N -L {args.location} --speedup {args.speedup} --out {args.uav_connection} {' '.join([f'--out {address}' for address in args.gs_connection])} &"

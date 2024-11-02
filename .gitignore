@@ -4,3 +4,4 @@ terrain
 eeprom.bin
 mav*
 .env
+uav_logs
