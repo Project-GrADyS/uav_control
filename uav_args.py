@@ -1,4 +1,4 @@
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentTypeError
 
 def parse_args():
     parser = ArgumentParser(description="Welcome to the UAV Runner, this script runs an API that interfaces with Ardupilots instances (real or simulated).")
@@ -129,4 +129,35 @@ def parse_protocol(protocol_parser):
         default=[],
         help='Uav collaborators api list. Format should be [<]',
         nargs='*'
+    )
+
+def parse_logs(logs_parser):
+
+    def valid_loggers_type(value):
+        valid_loggers = ['protocol', 'copter']
+        if not value.issubset(valid_loggers):
+            raise ArgumentTypeError('Invalid value. Please choose one of the following: value1, value2, or both')
+        return value
+    
+    logs_parser.add_argument(
+        "--log_console",
+        dest="log_console",
+        default=[],
+        type=valid_loggers_type,
+        help="List of loggers to be handled in console",
+        nargs='*'
+    )
+
+    logs_parser.add_argument(
+        "--log_path",
+        dest="log_path",
+        default=None,
+        help="If provided, saves log files to path."
+    )
+
+    logs_parser.add_argument(
+        "--debug",
+        dest="debug",
+        default=False,
+        help="Wheter to debug messages or not"
     )
