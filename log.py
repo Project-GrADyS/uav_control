@@ -1,6 +1,15 @@
 import logging
+import os
+
+def create_directory_if_not_exists(directory_name):
+    if not os.path.exists(directory_name):
+        os.makedirs(directory_name)
 
 def set_log_config(args):
+
+    log_config_logger = logging.getLogger("LOG_CONFIG")
+
+    # Default log config
     logging_config = {
         'version': 1,
         'formatters': {
@@ -11,7 +20,7 @@ def set_log_config(args):
                 'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
             }
         },
-        'handlers': {
+        "handlers": {
             'console_handler': {
                 'class': 'logging.StreamHandler',
                 'formatter': 'console_formatter'
@@ -25,27 +34,31 @@ def set_log_config(args):
         'loggers': {
             'COPTER': {
                 'level': 'INFO',
-                'handlers': ['console_handler', 'file_handler']
+                'handlers': ['file_handler']
             },
             'PROTOCOL': {
                 'level': 'INFO',
-                'handlers': ['console_handler', 'file_handler']
+                'handlers': ['file_handler']
+            },
+            "uvicorn": {
+                'level': 'INFO',
+                'handlers': ['file_handler']
+            },
+            "uvicorn.access": {
+                'level': 'INFO',
+                'handlers': ['file_handler']
+            },
+            "uvicorn.error": {
+                'level': 'INFO',
+                'handlers': ['file_handler']
             }
         }
     }
 
-    for name in logging_config["loggers"].keys():
-        handlers = []
+    for logger_name in args.log_console:
+        logging_config['loggers'][logger_name]['handlers'].append('console_handler')
 
-        if args.debug:
-            logging_config["loggers"]["name"]["level"] = "DEBUG"
-
-        if args.log_path != "":
-            handlers.append("file_handler")
-        
-        if name in args.log_console:
-            handlers.append("console_handler")
-
-        logging_config["loggers"][name]["handlers"] = handlers
+    for logger_name in args.debug:
+        logging_config['loggers'][logger_name]['handlers']['level'] = 'DEBUG'
 
     logging.config.dictConfig(logging_config)

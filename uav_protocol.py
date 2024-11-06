@@ -8,12 +8,21 @@ import heapq
 import importlib
 import os
 import heapq
+import logging
 
 TICK_INTERVAL = 0.5 # Interval between telemetry calls in seconds
 
+def protocol_debug(txt):
+    global logger
+    logger.debug(txt)
+
 def protocol_print(txt):
-    global sysid
-    print(f"[PROTOCOL-{sysid}] {txt}")
+    global logger
+    logger.info(txt)
+
+def protocol_critical(txt):
+    global logger
+    logger.critical(txt)
 
 def get_protocol(protocol_name: str) -> IProtocol:
     protocol_path = None
@@ -30,19 +39,19 @@ def get_protocol(protocol_name: str) -> IProtocol:
         module = importlib.import_module(protocol_path)
         return module.Protocol
     except FileNotFoundError:
-        protocol_print("Error: File not found at ~/.config/gradys/protocol.txt")
+        protocol_critical("Error: File not found at ~/.config/gradys/protocol.txt")
     except PermissionError:
-        protocol_print("Error: Permission denied when trying to access the file")
+        protocol_critical("Error: Permission denied when trying to access the file")
     except Exception as e:
-        protocol_print(f"An error occurred: {e}")
+        protocol_critical(f"An error occurred: {e}")
 
 def setup():
     global sysid, api, pos
     protocol_print(f"-----STARTING UAV-{sysid} SETUP-----")
+    protocol_debug(f"API {api}")
+    protocol_debug(f"SYSID {sysid}")
     # Arming uav
     protocol_print("Arming...")
-    print("API", api)
-    print("SYSID", sysid)
     arm_result = requests.get(f"{api}/command/arm")
     if arm_result.status_code != 200:
         raise Exception(F"UAV {sysid} not armed")
@@ -65,7 +74,7 @@ def setup():
             msg = f"UAV {sysid} movement to intial position fail"
             raise Exception(msg)
         protocol_print("Arrived.")
-    print(f"-----UAV-{sysid} SETUP COMPLETED-----")
+    protocol_print(f"-----UAV-{sysid} SETUP COMPLETED-----")
 
 def start_execution():
     global started, protocol
@@ -75,7 +84,7 @@ def start_execution():
 
 def timer_handler():
     global protocol, protocol_time, timers
-    print("timers", timers)
+
     # Timer Handling
     protocol.provider.time = protocol_time
         
@@ -122,17 +131,18 @@ def do_tick():
 
 def build_collaborator_table(collab_list):
     colab_table = {}
-    print("collab_list", collab_list)
+    protocol_debug(f"collab_list {collab_list}")
     for collab in collab_list:
         c_id, c_api = collab.strip("[]").split(",")
-        print("c_id", c_id)
-        print("c_api", c_api)
+        protocol_debug(f"c_id {c_id}")
+        protocol_debug(f"c_api {c_api}")
         colab_table[int(c_id)] = c_api
     return colab_table
 
 def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue, collaborators):
-    global started, protocol, api, sysid, queue, pos, timers, protocol_time
+    global started, protocol, api, sysid, queue, pos, timers, protocol_time, logger
 
+    logger = logging.getLogger("PROTOCOL")
     protocol_class = get_protocol(protocol_name)
     api = api_arg
     sysid = sysid_arg
@@ -144,7 +154,7 @@ def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue, col
     protocol = protocol_class.instantiate(provider)
     protocol_time = 0
     
-    print(f"Starting Protocol process for UAV {sysid}...")
+    protocol_print(f"Starting Protocol process for UAV {sysid}...")
 
 
     # wait for setup and started commands
@@ -157,7 +167,6 @@ def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue, col
     while started:
         time_start = time.time()
         if protocol_time >= last_tick + TICK_INTERVAL:  
-            print("PROTOCOL-TIME", protocol_time)
             do_tick()
             last_tick = protocol_time
         time_end = time.time()

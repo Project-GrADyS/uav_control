@@ -135,8 +135,8 @@ def parse_protocol(protocol_parser):
 def parse_logs(logs_parser):
 
     def valid_loggers_type(value):
-        valid_loggers = ['protocol', 'copter']
-        if not value.issubset(valid_loggers):
+        valid_loggers = {'PROTOCOL', 'COPTER'}
+        if not value in valid_loggers:
             raise ArgumentTypeError('Invalid value. Please choose one of the following: value1, value2, or both')
         return value
     
@@ -152,7 +152,7 @@ def parse_logs(logs_parser):
     logs_parser.add_argument(
         "--log_path",
         dest="log_path",
-        default="",
+        default=None,
         help="If provided, saves log files to path."
     )
 
