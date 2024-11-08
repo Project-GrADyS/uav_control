@@ -134,6 +134,7 @@ def parse_protocol(protocol_parser):
 
 def parse_logs(logs_parser):
 
+    # Defines which values are accepted as a LOGGER input.
     def valid_loggers_type(value):
         valid_loggers = {'PROTOCOL', 'COPTER'}
         if not value in valid_loggers:
@@ -145,7 +146,7 @@ def parse_logs(logs_parser):
         dest="log_console",
         default=[],
         type=valid_loggers_type,
-        help="List of loggers to be handled in console",
+        help="List of loggers to be handled in console. This loggers need to be a subset of: COPTER, PROTOCOL and API.",
         nargs='*'
     )
 
@@ -153,12 +154,13 @@ def parse_logs(logs_parser):
         "--log_path",
         dest="log_path",
         default=None,
-        help="If provided, saves log files to path."
+        help="If provided, saves log files to path. This log file will receive the logs from all loggers of that UAV. Which include: COPTER, PROTOCOL and API."
     )
 
     logs_parser.add_argument(
         "--debug",
         dest="debug",
-        default=False,
-        help="Wheter to debug messages or not"
+        default=[],
+        type=valid_loggers_type,
+        help="Which loggers to apply debug level. Possible logger: COPTER, PROTOCOL and API."
     )

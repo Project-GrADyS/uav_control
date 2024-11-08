@@ -139,10 +139,31 @@ def build_collaborator_table(collab_list):
         colab_table[int(c_id)] = c_api
     return colab_table
 
-def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue, collaborators):
-    global started, protocol, api, sysid, queue, pos, timers, protocol_time, logger
-
+def setup_logger(log_file, debug, log_console):
+    global logger, sysid
+    
     logger = logging.getLogger("PROTOCOL")
+    file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setFormatter(file_formatter)
+
+    if log_console:
+        console_formatter = logging.Formatter(f'[%(name)s-{sysid}] %(levelname)s - %(message)s')
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(console_formatter)
+        logger.addHandler(console_handler)
+
+    if debug:
+        logger.setLevel("DEBUG")
+    else:
+        logger.setLevel("INFO")
+
+    logger.addHandler(file_handler)
+
+def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue, collaborators, log_file, debug, log_console):
+    global started, protocol, api, sysid, queue, pos, timers, protocol_time
+
+    setup_logger(log_file, debug, log_console)
     protocol_class = get_protocol(protocol_name)
     api = api_arg
     sysid = sysid_arg

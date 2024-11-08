@@ -36,10 +36,6 @@ def set_log_config(args):
                 'level': 'INFO',
                 'handlers': ['file_handler']
             },
-            'PROTOCOL': {
-                'level': 'INFO',
-                'handlers': ['file_handler']
-            },
             "uvicorn": {
                 'level': 'INFO',
                 'handlers': ['file_handler']
@@ -56,9 +52,11 @@ def set_log_config(args):
     }
 
     for logger_name in args.log_console:
-        logging_config['loggers'][logger_name]['handlers'].append('console_handler')
+        if logger_name in logging_config["loggers"]:
+            logging_config['loggers'][logger_name]['handlers'].append('console_handler')
 
     for logger_name in args.debug:
-        logging_config['loggers'][logger_name]['handlers']['level'] = 'DEBUG'
+        if logger_name in logging_config["loggers"]:
+            logging_config['loggers'][logger_name]['level'] = 'DEBUG'
 
     logging.config.dictConfig(logging_config)

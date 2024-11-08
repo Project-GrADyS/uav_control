@@ -5,7 +5,8 @@ import requests
 
 class UavControlProvider(IProvider):
     def _provider_report(self, txt):
-        print(f"[PROVIDER-{self.id}] {txt}")
+        #print(f"[PROVIDER-{self.id}] {txt}")
+        pass
 
     def __init__(self, sysid, api_url, collaborators):
         self.id = sysid
@@ -21,7 +22,6 @@ class UavControlProvider(IProvider):
                 self._provider_report(f"Destination {command.destination} not found in collaborators's UAV list.\nIgnoring command...")
                 return
             message_result = requests.get(f"{self.collaborators[command.destination]}/protocol/message", params={"packet": command.message})
-            print(self.collaborators[command.destination])
             if message_result.status_code != 200:
                 self._provider_report(f"Unable to send message to UAV api at address: {self.collaborators[command.destination]}")
                 return
