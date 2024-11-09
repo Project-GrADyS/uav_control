@@ -27,7 +27,7 @@ def set_log_config(args):
             },
             'file_handler': {
                 'class': 'logging.FileHandler',
-                'filename': args.log_path,
+                'filename': f"./uav_logs/uav_{args.sysid}.log" if args.log_path == None else args.log_path,
                 'formatter': 'file_formatter'
             }
         },
