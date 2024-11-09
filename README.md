@@ -10,7 +10,9 @@ To install Uav_control simply clone this repository.
   
   `git clone git@github.com:Project-GrADyS/uav_control.git`
 ## Install required packages
+To install required python packages run the command bellow from the root folder of the repository:
 
+  `pip3 install -r requirements.txt`
 # Executing a Simulated flight
 ## Starting Uav_control
 To instantiate the API, run the script `uav_api.py` through the following command:
