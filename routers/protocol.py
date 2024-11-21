@@ -16,6 +16,10 @@ def setup(protocol_queue = Depends(get_protocol_queue)):
 def start(protocol_queue = Depends(get_protocol_queue)):
     protocol_queue.put({"type": "start"})
 
+@protocol_router.get("/finish", tags=["protocol"], summary="Finish UAV protocol execution")
+def finish(protocol_queue = Depends(get_protocol_queue)):
+    protocol_queue.put({"type": "finish"})
+
 @protocol_router.post("/message", tags=["protocol"], summary="Send message to UAV protocol")
 def send_message(packet: str, pos: Local_pos, protocol_queue = Depends(get_protocol_queue)):
     formatted_pos = (pos.x, pos.y, pos.z)
