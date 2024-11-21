@@ -1,5 +1,7 @@
+from typing import List
 from fastapi import APIRouter, Depends
 from protocol_connection import get_protocol_queue
+from classes.pos import Local_pos
 
 protocol_router = APIRouter(
     prefix="/protocol",
@@ -14,6 +16,8 @@ def setup(protocol_queue = Depends(get_protocol_queue)):
 def start(protocol_queue = Depends(get_protocol_queue)):
     protocol_queue.put({"type": "start"})
 
-@protocol_router.get("/message", tags=["protocol"], summary="Send message to UAV protocol")
-def send_message(packet: str, protocol_queue = Depends(get_protocol_queue)):
-    protocol_queue.put({"type": "message", "packet": packet})
+@protocol_router.post("/message", tags=["protocol"], summary="Send message to UAV protocol")
+def send_message(packet: str, pos: Local_pos, protocol_queue = Depends(get_protocol_queue)):
+    formatted_pos = (pos.x, pos.y, pos.z)
+    print(formatted_pos)
+    protocol_queue.put({"type": "message", "packet": packet, "pos": formatted_pos})

@@ -132,6 +132,13 @@ def parse_protocol(protocol_parser):
         nargs='*'
     )
 
+    protocol_parser.add_argument(
+        '--communication_range',
+        dest='communication_range',
+        default=-1,
+        help='Simulated communication range. -1 for no limit',
+    )
+
 def parse_logs(logs_parser):
 
     # Defines which values are accepted as a LOGGER input.

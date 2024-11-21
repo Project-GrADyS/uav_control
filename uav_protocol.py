@@ -9,8 +9,9 @@ import importlib
 import os
 import heapq
 import logging
+import math
 
-TICK_INTERVAL = 0.5 # Interval between telemetry calls in seconds
+TICK_INTERVAL = 0.2 # Interval between telemetry calls in seconds
 
 def protocol_debug(txt):
     global logger
@@ -24,6 +25,9 @@ def protocol_critical(txt):
     global logger
     logger.critical(txt)
 
+def euclidean_distance(point1, point2):
+    return math.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2 + (point1[2] - point2[2])**2)
+
 def get_protocol(protocol_name: str) -> IProtocol:
     protocol_path = None
     try:
@@ -32,18 +36,24 @@ def get_protocol(protocol_name: str) -> IProtocol:
             for line in file:
                 p_name, p_class = line.strip().split(" ")
                 if p_name == protocol_name:
+                    print(p_name, p_class)
                     protocol_path = p_class
                     break
         if protocol_path == None:
+            print(f"NO PATH: {protocol_name}")
             return None
-        module = importlib.import_module(protocol_path)
-        return module.Protocol
     except FileNotFoundError:
         protocol_critical("Error: File not found at ~/.config/gradys/protocol.txt")
+        return None
     except PermissionError:
         protocol_critical("Error: Permission denied when trying to access the file")
+        return None
     except Exception as e:
         protocol_critical(f"An error occurred: {e}")
+        return None
+    module = importlib.import_module(protocol_path)
+    print(f"MODULE: {module}")
+    return module.Protocol
 
 def setup():
     global sysid, api, pos
@@ -66,7 +76,6 @@ def setup():
 
     # Going to start position
     protocol_print("Going to start position...")
-    pos = [int(value) for value in pos.strip("[]").split(",")]
     if pos != [0,0,0]:
         pos_data = {"x": pos[0], "y": pos[1], "z": -pos[2]} # in this step we buld the json data and convert z in protocol frame to z in ned frame (downwars)
         go_to_result = requests.post(f"{api}/movement/go_to_ned_wait", json=pos_data)
@@ -105,8 +114,27 @@ def telemetry_handler():
     if ned_result.status_code != 200:
         raise Exception("Fail to get NED Telemetry")
     ned_pos = ned_result.json()["info"]["position"]
-    telemetry_msg = Telemetry((ned_pos["x"], ned_pos["y"], ned_pos["z"]))
+    coords = [ned_pos["x"], ned_pos["y"], -ned_pos["z"]]
+    protocol.provider.current_pos = coords
+    telemetry_msg = Telemetry(coords)
     protocol.handle_telemetry(telemetry_msg)
+
+def communication_handler(command):
+    global protocol, communication_range
+
+    print(communication_range)
+    if communication_range == -1:
+        protocol.handle_packet(command["packet"])
+        return
+    protocol_debug(f"message_pos: {command['pos']}")
+
+    uavs_distance = euclidean_distance(command['pos'], protocol.provider.current_pos)
+    protocol_debug(f"message_distance: {uavs_distance}")
+    if uavs_distance <= communication_range:
+        protocol.handle_packet(command["packet"])
+        protocol_print(f"Message received!\n{command['packet']}")
+    else:
+        protocol_print("Message rejected.")
 
 def queue_handler():
     global protocol, sysid, api, pos, queue
@@ -120,7 +148,7 @@ def queue_handler():
     elif command["type"] == "start":
         start_execution()
     elif command["type"] == "message":
-        protocol.handle_packet(command["packet"])
+        communication_handler(command)
     elif command["type"] == "end":
         exit()
         
@@ -148,7 +176,7 @@ def setup_logger(log_file, debug, log_console):
     file_handler.setFormatter(file_formatter)
 
     if log_console:
-        console_formatter = logging.Formatter(f'[%(name)s-{sysid}] %(levelname)s - %(message)s')
+        console_formatter = logging.Formatter(f"[%(name)s-{sysid}] %(levelname)s - %(message)s")
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(console_formatter)
         logger.addHandler(console_handler)
@@ -160,23 +188,24 @@ def setup_logger(log_file, debug, log_console):
 
     logger.addHandler(file_handler)
 
-def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue, collaborators, log_file, debug, log_console):
-    global started, protocol, api, sysid, queue, pos, timers, protocol_time
+def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue, collaborators, log_file, debug, log_console, cr, speedup):
+    global started, protocol, api, sysid, queue, pos, timers, protocol_time, communication_range
 
+    communication_range = float(cr)
+    sysid = sysid_arg
     setup_logger(log_file, debug, log_console)
     protocol_class = get_protocol(protocol_name)
     api = api_arg
-    sysid = sysid_arg
-    pos = pos_arg
+    pos = pos = [int(value) for value in pos_arg.strip("[]").split(",")]
     queue = extern_queue
     timers = []
     colab_table = build_collaborator_table(collaborators)
     provider: IProvider = UavControlProvider(sysid, api, colab_table)
+    provider.current_pos = pos
     protocol = protocol_class.instantiate(provider)
     protocol_time = 0
     
     protocol_print(f"Starting Protocol process for UAV {sysid}...")
-
 
     # wait for setup and started commands
     started = False
@@ -191,4 +220,4 @@ def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue, col
             do_tick()
             last_tick = protocol_time
         time_end = time.time()
-        protocol_time += time_end - time_start
+        protocol_time += (time_end - time_start) * speedup

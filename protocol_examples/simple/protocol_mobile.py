@@ -5,15 +5,15 @@ from protocol.plugin.mission_mobility import (
     MissionMobilityPlugin,
     MissionMobilityConfiguration,
 )
-from protocol.plugin.statistics import create_statistics, finish_statistics
+
 from protocol.messages.communication import BroadcastMessageCommand
 
 from protocol.messages.telemetry import Telemetry
 from protocol.interface import IProtocol
-from message import SimpleMessage, SenderType
+from protocol_examples.simple.message import SimpleMessage, SenderType
 
 
-class SimpleProtocolMobile(IProtocol):
+class Protocol(IProtocol):
     def __init__(self):
         self.packets: int = 0
         self.last_telemetry_message: Telemetry
@@ -22,8 +22,6 @@ class SimpleProtocolMobile(IProtocol):
 
     def initialize(self):
         self._logger.debug("Initializing mobile protocol")
-
-        create_statistics(self)
 
         self.mission: MissionMobilityPlugin= MissionMobilityPlugin(
             self, MissionMobilityConfiguration(loop_mission=LoopMission.RESTART)
@@ -68,4 +66,4 @@ class SimpleProtocolMobile(IProtocol):
         self.last_telemetry_message = telemetry
 
     def finish(self):
-        finish_statistics(self)
+        pass

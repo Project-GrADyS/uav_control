@@ -14,7 +14,7 @@ def set_log_config(args):
         'version': 1,
         'formatters': {
             'console_formatter': {
-                'format': f'[%(name)s-{args.sysid}] %(levelname)s - %(message)s'
+                'format': f"[%(name)s-{args.sysid}] %(levelname)s - %(message)s"
             },
             'file_formatter': {
                 'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'

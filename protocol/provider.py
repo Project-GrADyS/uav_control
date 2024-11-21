@@ -14,27 +14,35 @@ class UavControlProvider(IProvider):
         self.timers = []
         self.time = -1
         self.collaborators: dict = collaborators
+        self.tracked_variables = {} # doesn't do nothing yet
+        self.current_pos = None
         self._provider_report(collaborators)
 
     def send_communication_command(self, command: CommunicationCommand) -> None:
+        uav_pos = {}
+        uav_pos["x"] = self.current_pos[0]
+        uav_pos["y"] = self.current_pos[1]
+        uav_pos["z"] = self.current_pos[2]
         if command.command_type == CommunicationCommandType.SEND:
             if command.destination not in self.collaborators.keys():
                 self._provider_report(f"Destination {command.destination} not found in collaborators's UAV list.\nIgnoring command...")
                 return
-            message_result = requests.get(f"{self.collaborators[command.destination]}/protocol/message", params={"packet": command.message})
+            message_result = requests.post(f"{self.collaborators[command.destination]}/protocol/message", params={"packet": command.message}, json=uav_pos)
             if message_result.status_code != 200:
                 self._provider_report(f"Unable to send message to UAV api at address: {self.collaborators[command.destination]}")
                 return
             self._provider_report(f"Message sent successfully to address: {self.collaborators[command.destination]}")
         elif command.command_type == CommunicationCommandType.BROADCAST:
             for c_sysid, c_api in self.collaborators.items():
-                message_result = requests.get(f"{c_api}/protocol/message", params={"packet": command.message})
+                self._provider_report(f"uav_pos = {uav_pos}")
+                message_result = requests.post(f"{c_api}/protocol/message", params={"packet": command.message}, json=uav_pos)
                 if message_result.status_code != 200:
                     self._provider_report(f"Unable to send broadcast message to UAV {c_sysid} api at addres: {c_api}")
                     continue
                 self._provider_report(f"Broadcast message sent successfully to: (sysid={c_sysid},api{c_api})")
 
     def send_mobility_command(self, command: MobilityCommand) -> None:
+        self._provider_report(f"Sending mobility command. COMMAND={command}")
         if command.command_type == MobilityCommandType.GOTO_COORDS:
             data = {
                 "x": command.param_1,
@@ -49,6 +57,8 @@ class UavControlProvider(IProvider):
                 "alt": command.param_3
             }
             requests.post(self.api_url+"/movement/go_to_gps", json=data)
+        elif command.command_type == MobilityCommandType.SET_SPEED:
+            self._provider_report("SPEED COMMAND RECEIVED")
     def schedule_timer(self, timer: str, timestamp: float) -> None:
         self.timers.append((timestamp, timer))
 

@@ -2,10 +2,10 @@ import logging
 from protocol.messages.communication import BroadcastMessageCommand
 from protocol.messages.telemetry import Telemetry
 from protocol.interface import IProtocol
-from message import SimpleMessage, SenderType
+from protocol_examples.simple.message import SimpleMessage, SenderType
 
 
-class SimpleProtocolGround(IProtocol):
+class Protocol(IProtocol):
     def __init__(self):
         self.packets: int = 0
 

@@ -60,7 +60,7 @@ async def lifespan(app: FastAPI):
     if args.protocol:
         protocol_debug = ("PROTOCOL" in args.debug)
         protocol_console = ("PROTOCOL" in args.log_console)
-        protocol_t, protocol_q = create_protocol(args.protocol_name, args.port, args.sysid, args.pos, args.collaborators, args.log_path, protocol_debug, protocol_console)
+        protocol_t, protocol_q = create_protocol(args.protocol_name, args.port, args.sysid, args.pos, args.collaborators, args.log_path, protocol_debug, protocol_console, args.communication_range, args.speedup)
     get_copter_instance(args.sysid, f"{args.connection_type}:{args.uav_connection}")
     yield
     # Close protocol thread
