@@ -42,4 +42,4 @@ class Protocol(IProtocol):
         pass
 
     def finish(self):
-        pass
+        print("SENSOR PROTOCOL FINISH")

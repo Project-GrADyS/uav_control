@@ -38,5 +38,5 @@ class Protocol(IProtocol):
         pass
 
     def finish(self):
-        pass
+        print("GROUND PROTOCOL FINISHED")
         

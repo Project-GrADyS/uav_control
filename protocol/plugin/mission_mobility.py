@@ -57,7 +57,8 @@ class MissionMobilityPlugin:
         self._dispatcher = create_dispatcher(protocol)
         self._instance = protocol
         self._config = configuration
-        self._logger = logging.getLogger("MISSION PLUGIN")
+        self._logger = logging.getLogger("MISSION")
+        self._logger.propagate = False
         console_handler = logging.StreamHandler()
         self._logger.addHandler(console_handler)
         self._logger.setLevel(logging.DEBUG)

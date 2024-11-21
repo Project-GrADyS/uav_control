@@ -66,4 +66,4 @@ class Protocol(IProtocol):
         self.last_telemetry_message = telemetry
 
     def finish(self):
-        pass
+        print("MOBILE PROTOCOL FINISHED")

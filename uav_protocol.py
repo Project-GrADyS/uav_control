@@ -1,4 +1,3 @@
-from argparse import ArgumentParser
 from protocol.interface import IProtocol, IProvider
 from protocol.messages.telemetry import Telemetry
 import requests
@@ -10,6 +9,8 @@ import os
 import heapq
 import logging
 import math
+import multiprocessing
+import signal
 
 TICK_INTERVAL = 0.2 # Interval between telemetry calls in seconds
 
@@ -86,10 +87,10 @@ def setup():
     protocol_print(f"-----UAV-{sysid} SETUP COMPLETED-----")
 
 def start_execution():
-    global started, protocol
+    global running, protocol
     protocol_print("Starting Execution.")
     protocol.initialize()
-    started = True
+    running = True
 
 def timer_handler():
     global protocol, protocol_time, timers
@@ -122,7 +123,6 @@ def telemetry_handler():
 def communication_handler(command):
     global protocol, communication_range
 
-    print(communication_range)
     if communication_range == -1:
         protocol.handle_packet(command["packet"])
         return
@@ -137,24 +137,34 @@ def communication_handler(command):
         protocol_print("Message rejected.")
 
 def queue_handler():
-    global protocol, sysid, api, pos, queue
+    global protocol, sysid, api, pos, queue, running, alive
+    items = []
     try:
-        command = queue.get(block=False)
-    except:
-        return
-    protocol_print(f"command: {command}")
-    if command["type"] == "setup":
-        setup()
-    elif command["type"] == "start":
-        start_execution()
-    elif command["type"] == "message":
-        communication_handler(command)
-    elif command["type"] == "end":
-        exit()
+        while not queue.empty():
+            items.append(queue.get_nowait())  # Retrieve item without blocking
+    except multiprocessing.queues.Empty:
+        pass  # Queue is empty, return what we have
+
+    for command in items:        
+        protocol_print(f"command: {command}")
+        if command["type"] == "setup":
+            setup()
+        elif command["type"] == "start":
+            running = True
+            start_execution()
+        elif command["type"] == "message" and running:
+            communication_handler(command)
+        elif command["type"] == "finish":
+            protocol.finish()
+            running = False
         
 def do_tick():
-    timer_handler()
-    telemetry_handler()
+    global running
+
+    if running:
+        timer_handler()
+        telemetry_handler()
+
     queue_handler()
 
 def build_collaborator_table(collab_list):
@@ -188,8 +198,14 @@ def setup_logger(log_file, debug, log_console):
 
     logger.addHandler(file_handler)
 
+def end(signum, frame):
+    global alive, queue
+    print("Calling end handler...")
+    alive = False
+    protocol.finish()
+
 def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue, collaborators, log_file, debug, log_console, cr, speedup):
-    global started, protocol, api, sysid, queue, pos, timers, protocol_time, communication_range
+    global running, protocol, api, sysid, queue, pos, timers, protocol_time, communication_range, alive
 
     communication_range = float(cr)
     sysid = sysid_arg
@@ -205,19 +221,21 @@ def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue, col
     protocol = protocol_class.instantiate(provider)
     protocol_time = 0
     
+    signal.signal(signal.SIGINT, end)
+
     protocol_print(f"Starting Protocol process for UAV {sysid}...")
 
-    # wait for setup and started commands
-    started = False
-    while not started:
-        queue_handler()
-        time.sleep(1)
-    protocol_print("started")
-    last_tick = - TICK_INTERVAL
-    while started:
-        time_start = time.time()
-        if protocol_time >= last_tick + TICK_INTERVAL:  
-            do_tick()
-            last_tick = protocol_time
-        time_end = time.time()
-        protocol_time += (time_end - time_start) * speedup
+    alive = True
+    running = False
+    last_tick = -TICK_INTERVAL
+    while alive:
+        if running:
+            time_start = time.time()
+            if protocol_time >= last_tick + TICK_INTERVAL:  
+                do_tick()
+                last_tick = protocol_time
+            time_end = time.time()
+            protocol_time += (time_end - time_start) * speedup
+        else:
+            queue_handler()
+    protocol_print("END")

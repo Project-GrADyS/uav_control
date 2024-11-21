@@ -47,6 +47,10 @@ def set_log_config(args):
             "uvicorn.error": {
                 'level': 'INFO',
                 'handlers': ['file_handler']
+            },
+            "API": {
+                'level': 'INFO',
+                'handlers': ['file_handler', 'console_handler']
             }
         }
     }

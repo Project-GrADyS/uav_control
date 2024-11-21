@@ -35,11 +35,11 @@ for i in range(args.n):
     port = 8000 + i
     sysid = 10 + i
     collaborators = ' '.join([f"[{10+j},http://localhost:{8000+j}]" for j in range(args.n) if j != i])
-    uav_command = f"python3 uav_api.py --simulated true --protocol true --sysid {sysid} --pos {args.pos_list[i]} --uav_connection {connection} --port {port} --speedup 1 --protocol_name {args.protocol_names[i]} --collaborators {collaborators} --log_path ./uav_logs/uav_{sysid}.log --debug PROTOCOL --communication_range 50 &"
+    uav_command = f"python3 uav_api.py --simulated true --protocol true --sysid {sysid} --pos {args.pos_list[i]} --uav_connection {connection} --port {port} --speedup 1 --protocol_name {args.protocol_names[i]} --collaborators {collaborators} --log_path ./uav_logs/uav_{sysid}.log --log_console PROTOCOL --debug PROTOCOL --communication_range 50 &"
     os.system(uav_command)
 
 cmd = ""
-while cmd != "stop_protocol":
+while cmd != "exit":
     cmd = input()
     if cmd == "setup":
         for i in range(args.n):
@@ -47,3 +47,6 @@ while cmd != "stop_protocol":
     if cmd == "start":
         for i in range(args.n):
             result = requests.get(f"http://localhost:{8000+i}/protocol/start")
+    if cmd == "stop":
+        for i in range(args.n):
+            result = requests.get(f"http://localhost:{8000+i}/protocol/finish")

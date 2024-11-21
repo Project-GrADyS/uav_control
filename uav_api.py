@@ -1,5 +1,7 @@
 import os
 import uvicorn
+import logging
+import time
 
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
@@ -65,7 +67,8 @@ async def lifespan(app: FastAPI):
     yield
     # Close protocol thread
     if args.protocol:
-        protocol_q.put({"type": "end"})
+        protocol_q.close()
+        protocol_q.join_thread()
         protocol_t.join()
     # Close SITL
     if args.simulated:
