@@ -116,6 +116,7 @@ def telemetry_handler():
         raise Exception("Fail to get NED Telemetry")
     ned_pos = ned_result.json()["info"]["position"]
     coords = [ned_pos["x"], ned_pos["y"], -ned_pos["z"]]
+    protocol_print(f"Handling telemetry. (coords={coords})")
     protocol.provider.current_pos = coords
     telemetry_msg = Telemetry(coords)
     protocol.handle_telemetry(telemetry_msg)
@@ -140,13 +141,13 @@ def queue_handler():
     global protocol, sysid, api, pos, queue, running, alive
     items = []
     try:
-        while not queue.empty():
+        while len(items) < 5 and not queue.empty():
             items.append(queue.get_nowait())  # Retrieve item without blocking
     except multiprocessing.queues.Empty:
         pass  # Queue is empty, return what we have
 
     for command in items:        
-        protocol_print(f"ITEMS: {items}; command: {command}")
+        protocol_print(f"ITEMS: {len(items)}; command: {command}")
         if command["type"] == "setup":
             setup()
         elif command["type"] == "start":
@@ -159,13 +160,8 @@ def queue_handler():
             running = False
         
 def do_tick():
-    global running
-
-    if running:
-        timer_handler()
-        telemetry_handler()
-
-    queue_handler()
+    timer_handler()
+    telemetry_handler()
 
 def build_collaborator_table(collab_list):
     colab_table = {}
@@ -227,15 +223,18 @@ def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue, col
 
     alive = True
     running = False
+    started = False
     last_tick = -TICK_INTERVAL
     while alive:
+        time_start = time.time()
+
         if running:
-            time_start = time.time()
             if protocol_time >= last_tick + TICK_INTERVAL:  
                 do_tick()
                 last_tick = protocol_time
-            time_end = time.time()
-            protocol_time += (time_end - time_start) * speedup
-        else:
-            queue_handler()
+
+        queue_handler()
+
+        time_end = time.time()
+        protocol_time += (time_end - time_start) * speedup
     protocol_print("END")
