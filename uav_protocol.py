@@ -12,7 +12,7 @@ import math
 import multiprocessing
 import signal
 
-TICK_INTERVAL = 0.2 # Interval between telemetry calls in seconds
+TICK_INTERVAL = 0.1 # Interval between telemetry calls in seconds
 
 def protocol_debug(txt):
     global logger
@@ -146,7 +146,7 @@ def queue_handler():
         pass  # Queue is empty, return what we have
 
     for command in items:        
-        protocol_print(f"command: {command}")
+        protocol_print(f"ITEMS: {items}; command: {command}")
         if command["type"] == "setup":
             setup()
         elif command["type"] == "start":

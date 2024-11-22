@@ -1474,7 +1474,14 @@ Also, ignores heartbeats not from our target system"""
         current_pos = self.mav.location()
 
         def travelled_distance():
-            return self.get_distance(current_pos, self.mav.location())
+            self.logger.debug("current_pos %s" % current_pos)
+            new_location = self.mav.location()
+            self.logger.debug("new_location %s" % new_location)
+            z_distance = abs(new_location.alt - current_pos.alt)
+            self.logger.debug("z_distance %s" % z_distance)
+            xy_distance = self.get_distance(current_pos, new_location)
+            self.logger.debug("xy_distance %s" % xy_distance)
+            return  xy_distance + z_distance
 
         def moving_validator(value, target):
             return value >= target
