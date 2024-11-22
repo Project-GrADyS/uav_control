@@ -5,3 +5,4 @@ eeprom.bin
 mav*
 .env
 uav_logs
+*.csv

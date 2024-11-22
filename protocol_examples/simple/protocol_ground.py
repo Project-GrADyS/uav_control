@@ -1,4 +1,5 @@
 import logging
+from protocol.plugin.statistics import create_statistics, finish_statistics
 from protocol.messages.communication import BroadcastMessageCommand
 from protocol.messages.telemetry import Telemetry
 from protocol.interface import IProtocol
@@ -13,6 +14,8 @@ class Protocol(IProtocol):
 
     def initialize(self):
         self._logger.debug("Initializing mobile protocol")
+
+        create_statistics(self)
 
         self.provider.tracked_variables["packets"] = self.packets
 
@@ -38,5 +41,5 @@ class Protocol(IProtocol):
         pass
 
     def finish(self):
-        print("GROUND PROTOCOL FINISHED")
+        finish_statistics(self)
         

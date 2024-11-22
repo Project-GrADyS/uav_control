@@ -1,6 +1,6 @@
 import logging
 import random
-
+from protocol.plugin.statistics import create_statistics, finish_statistics
 from protocol.messages.communication import BroadcastMessageCommand
 from protocol.messages.telemetry import Telemetry
 from protocol.interface import IProtocol
@@ -15,6 +15,8 @@ class Protocol(IProtocol):
         
     def initialize(self):
         self._logger.debug("initializing sensor protocol")
+
+        create_statistics(self)
 
         self.provider.tracked_variables["packets"] = self.packets
         self.provider.schedule_timer("", self.provider.current_time() + random.random())
@@ -42,4 +44,4 @@ class Protocol(IProtocol):
         pass
 
     def finish(self):
-        print("SENSOR PROTOCOL FINISH")
+        finish_statistics(self)
