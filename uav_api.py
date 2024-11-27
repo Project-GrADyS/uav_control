@@ -17,7 +17,7 @@ from log import set_log_config
 args = parse_args()
 
 if __name__ == '__main__':      
-    uvicorn.run("uav_api:app", host="0.0.0.0", port=int(args.port), log_level="info", reload=True)
+    uvicorn.run("uav_api:app", host="0.0.0.0", port=int(args.port), log_level="info", reload=True, workers=4)
     exit()
 
 metadata = [
