@@ -1,5 +1,7 @@
 from protocol.interface import IProtocol, IProvider
 from protocol.messages.telemetry import Telemetry
+from protocol.messages.communication import CommunicationCommandType
+from protocol.messages.mobility import MobilityCommandType
 import requests
 from protocol.provider import UavControlProvider
 import time
@@ -11,8 +13,13 @@ import logging
 import math
 import multiprocessing
 import signal
+import asyncio
 
-TICK_INTERVAL = 0.1 # Interval between telemetry calls in seconds
+TIMER_INTERVAL = 0.1   
+TELEMETRY_INTERVAL = 0.1
+QUEUE_INTERVAL = 0.4
+COMMUNICATION_INTERVAL = 0.4
+MOBILITY_INTERVAL = 0.2
 
 def protocol_debug(txt):
     global logger
@@ -92,36 +99,45 @@ def start_execution():
     protocol.initialize()
     running = True
 
-def timer_handler():
-    global protocol, protocol_time, timers
+async def timer_handler():
+    global protocol, timers, running, speedup
+    
+    protocol.provider.time = 0
+    while running:
+        time_start = time.time()
+        # Timer Handling
+        protocol_print("Handling Timer.")
+        new_timers = protocol.provider.collect_timers()
+        for timer in new_timers:
+            heapq.heappush(timers, timer)
+        if len(timers) == 0:
+            return
+        next_timer = timers[0]
+        if protocol.provider.time >= next_timer[0]:
+            protocol.handle_timer(next_timer[1])
+            heapq.heappop(timers)
 
-    # Timer Handling
-    protocol.provider.time = protocol_time
-        
-    new_timers = protocol.provider.collect_timers()
-    for timer in new_timers:
-        heapq.heappush(timers, timer)
-    if len(timers) == 0:
-        return
-    next_timer = timers[0]
-    if protocol_time >= next_timer[0]:
-        protocol.handle_timer(next_timer[1])
-        heapq.heappop(timers)
+        await asyncio.sleep(TIMER_INTERVAL/speedup)
+        time_end = time.time()
+        protocol.provider.time += (time_end - time_start) * speedup
+async def telemetry_handler():
+    global protocol, api, running
 
-def telemetry_handler():
-    global protocol, api
+    while running:
     # Telemetry Handling
-    ned_result = requests.get(f"{api}/telemetry/ned")
-    if ned_result.status_code != 200:
-        raise Exception("Fail to get NED Telemetry")
-    ned_pos = ned_result.json()["info"]["position"]
-    coords = [ned_pos["x"], ned_pos["y"], -ned_pos["z"]]
-    protocol_print(f"Handling telemetry. (coords={coords})")
-    protocol.provider.current_pos = coords
-    telemetry_msg = Telemetry(coords)
-    protocol.handle_telemetry(telemetry_msg)
+        protocol_print(f"Handling telemetry.")
+        ned_result = requests.get(f"{api}/telemetry/ned")
+        if ned_result.status_code != 200:
+            raise Exception("Fail to get NED Telemetry")
+        ned_pos = ned_result.json()["info"]["position"]
+        coords = [ned_pos["x"], ned_pos["y"], -ned_pos["z"]]
+        protocol.provider.current_pos = coords
+        telemetry_msg = Telemetry(coords)
+        protocol.handle_telemetry(telemetry_msg)
 
-def communication_handler(command):
+        await asyncio.sleep(TELEMETRY_INTERVAL)
+
+def handle_message(command):
     global protocol, communication_range
 
     if communication_range == -1:
@@ -137,31 +153,84 @@ def communication_handler(command):
     else:
         protocol_print("Message rejected.")
 
-def queue_handler():
-    global protocol, sysid, api, pos, queue, running, alive
-    items = []
+def clear_queue(q, max_elements):
+    elements = []
     try:
-        while len(items) < 5 and not queue.empty():
-            items.append(queue.get_nowait())  # Retrieve item without blocking
+        while len(elements) < max_elements:
+            elements.append(q.get_nowait())
     except multiprocessing.queues.Empty:
-        pass  # Queue is empty, return what we have
+        print("QUEUE IS EMPTY")
+    return elements
 
-    for command in items:        
-        protocol_print(f"ITEMS: {len(items)}; command: {command}")
+
+async def queue_handler():
+    global protocol, queue, running, alive
+    
+    while alive: 
+        protocol_print("Handling queue.")
+        command = {}
+        try:
+            command = queue.get_nowait()
+        except multiprocessing.queues.Empty:
+            await asyncio.sleep(QUEUE_INTERVAL)
+            continue
+
+        protocol_print(f"COMMAND RECEIVED: {command}")
         if command["type"] == "setup":
             setup()
         elif command["type"] == "start":
             running = True
             start_execution()
-        elif command["type"] == "message" and running:
-            communication_handler(command)
+            return
         elif command["type"] == "finish":
             protocol.finish()
             running = False
-        
-def do_tick():
-    timer_handler()
-    telemetry_handler()
+        elif command["type"] == "message" and running:
+            print("Command is message.")
+            handle_message(command)
+        elif command["type"] == "end":
+            alive = False
+            return
+
+# async def send_message(message, pos, api):
+#     movement_result = requests.post(f"{api}/protocol/message", params={"packet": message}, json=pos)
+#     if movement_result.status_code != 200:
+#         protocol_critical(f"Error sending message to {api}")
+
+# async def communication_handler():
+#     global protocol, running, colab_table
+
+#     while running:
+#         commands = protocol.provider.collect_communication_commands()
+
+#         for command_obj in commands:
+#             command = command_obj["command"]
+#             if command.command_type == CommunicationCommandType.SEND:
+#                 await send_message(command.message, command_obj["uav_pos"], colab_table[command.destination])
+#             elif command.command_type == CommunicationCommandType.BROADCAST:
+#                 for c_id, c_api in colab_table.items():
+#                     await send_message(command.message, command_obj["uav_pos"], c_api)
+
+#         await asyncio.sleep(COMMUNICATION_INTERVAL)
+
+# async def move(api, frame, payload):
+#     movement_result = requests.post(f"{api}/movement/go_to_{frame}", json=payload)
+#     if movement_result.status_code != 200:
+#         protocol_critical("Movement Error.")
+
+# async def mobility_handler():
+#     global protocol, running, api
+
+#     while running:
+#         commands = protocol.provider.collect_mobility_commands()
+
+#         for command_obj in commands:
+#             if command_obj["command"].command_type == MobilityCommandType.GOTO_COORDS:
+#                 await move(api, "ned", command_obj["data"])
+#             elif command_obj["command"].command_type == MobilityCommandType.GOTO_GEO_COORDS:
+#                 await move(api, "gps", command_obj["data"])
+
+#         await asyncio.sleep(MOBILITY_INTERVAL)
 
 def build_collaborator_table(collab_list):
     colab_table = {}
@@ -195,13 +264,14 @@ def setup_logger(log_file, debug, log_console):
     logger.addHandler(file_handler)
 
 def end(signum, frame):
-    global alive, queue
+    global alive, queue, running, protocol
     print("Calling end handler...")
     alive = False
+    running = False
     protocol.finish()
 
-def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue, collaborators, log_file, debug, log_console, cr, speedup):
-    global running, protocol, api, sysid, queue, pos, timers, protocol_time, communication_range, alive
+def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue, collaborators, log_file, debug, log_console, cr, speed):
+    global running, protocol, api, sysid, queue, pos, timers, communication_range, alive, colab_table, speedup
 
     communication_range = float(cr)
     sysid = sysid_arg
@@ -215,26 +285,27 @@ def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue, col
     provider: IProvider = UavControlProvider(sysid, api, colab_table)
     provider.current_pos = pos
     protocol = protocol_class.instantiate(provider)
-    protocol_time = 0
-    
+    speedup = speed
+
     signal.signal(signal.SIGINT, end)
 
     protocol_print(f"Starting Protocol process for UAV {sysid}...")
 
     alive = True
     running = False
-    started = False
-    last_tick = -TICK_INTERVAL
-    while alive:
-        time_start = time.time()
 
-        if running:
-            if protocol_time >= last_tick + TICK_INTERVAL:  
-                do_tick()
-                last_tick = protocol_time
+    async def main_loop():
+        setup_queue_task = asyncio.create_task(queue_handler())
+        
+        await setup_queue_task
+        
+        timer_task = asyncio.create_task(timer_handler())
+        telemetry_task = asyncio.create_task(telemetry_handler())
+        queue_task = asyncio.create_task(queue_handler())
 
-        queue_handler()
+        await timer_task
+        await telemetry_task
+        await queue_task
+        protocol_print("----- END -----")
 
-        time_end = time.time()
-        protocol_time += (time_end - time_start) * speedup
-    protocol_print("END")
+    asyncio.run(main_loop())
