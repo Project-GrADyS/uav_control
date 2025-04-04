@@ -17,7 +17,7 @@ from log import set_log_config
 args = parse_args()
 
 if __name__ == '__main__':      
-    uvicorn.run("uav_api:app", host="0.0.0.0", port=int(args.port), log_level="info", reload=True, workers=4)
+    uvicorn.run("uav_api:app", host="0.0.0.0", port=int(args.port), log_level="debug", reload=True)
     exit()
 
 metadata = [
@@ -56,7 +56,8 @@ async def lifespan(app: FastAPI):
     set_log_config(args)
     # Start SITL
     if args.simulated:
-        sitl_command = f"xterm -e {args.ardupilot_path}/Tools/autotest/sim_vehicle.py -v ArduCopter -I {args.sysid} --sysid {args.sysid} -N -L {args.location} --speedup {args.speedup} --out {args.uav_connection} {' '.join([f'--out {address}' for address in args.gs_connection])} &"
+        out_str = f"--out {args.uav_connection} {' '.join([f'--out {address}' for address in args.gs_connection])} "
+        sitl_command = f"xterm -e {args.ardupilot_path}/Tools/autotest/sim_vehicle.py -v ArduCopter -I {args.sysid} --sysid {args.sysid} -N -L {args.location} --speedup {args.speedup} {out_str}&"
         os.system(sitl_command)
     # Initialize protocol thread
     if args.protocol:

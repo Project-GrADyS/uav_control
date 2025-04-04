@@ -1,4 +1,10 @@
 from argparse import ArgumentParser, ArgumentTypeError
+import configparser
+
+def parse_config_file(file_path):
+    config = configparser.ConfigParser()
+    config.read(file_path)
+    print(config.sections())
 
 def parse_args():
     parser = ArgumentParser(description="Welcome to the UAV Runner, this script runs an API that interfaces with Ardupilots instances (real or simulated).")
@@ -11,6 +17,18 @@ def parse_args():
     if partial_args.protocol:
         parse_protocol(parser)
     args = parser.parse_args()
+
+    if args.config:
+        #parse_config_file(args.config)
+        config = configparser.ConfigParser()
+        config.read(args.config)
+        for section in config.sections():
+            for key, value in config.items(section):
+                if hasattr(args, key):
+                    setattr(args, key, value)
+                else:
+                    print(f"Warning: {key} not found in args")
+        print(config.sections())
     return args
     
 # MODE PARSER
@@ -87,7 +105,7 @@ def parse_simulated(simulated_parser):
     simulated_parser.add_argument(
         '--gs_connection',
         dest='gs_connection',
-        default=["172.26.176.1:15630", "172.31.16.1:15630"],
+        default=["172.26.176.1:15630", "172.31.16.1:15630", "172.23.192.1:15630"],
         help="Address for GroundStation connection",
         nargs='*'
     )
