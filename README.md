@@ -31,7 +31,11 @@ sysid = 12
 ```
 And run the command:
 
-  `python uav_api.py --config flight_examples/config.ini`
+  `python3 uav_api.py --config flight_examples/config.ini`
+
+To get better insight on the arguments for `uav_api.py` run the command bellow:
+
+  `python3 uav_api --help`
 ## Testing API
 To verify the initialization of the API go to the endpoint `localhost:[your_port]/docs`.
 ![image](https://github.com/user-attachments/assets/6d1f9b6c-f69c-4381-98f0-7adec7311c15)
