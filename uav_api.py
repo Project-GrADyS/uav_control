@@ -10,13 +10,11 @@ from copter_connection import get_copter_instance
 from routers.movement import movement_router
 from routers.command import command_router
 from routers.telemetry import telemetry_router
-from routers.protocol import protocol_router
-from protocol_connection import create_protocol
 from log import set_log_config
 
 args = parse_args()
 
-if __name__ == '__main__':      
+if __name__ == '__main__':
     uvicorn.run("uav_api:app", host="0.0.0.0", port=int(args.port), log_level="debug", reload=True)
     exit()
 
@@ -32,10 +30,6 @@ metadata = [
     {
         "name": "telemetry",
         "description": "Provides telemetry of the UAV"
-    },
-    {
-        "name": "protocol",
-        "description": "Provides interface for controlling protocol execution"
     }
     # {
     #     "name": "mission",
@@ -49,7 +43,6 @@ description = f"""
 * CONNECTION_STRING = **{args.uav_connection}**
 """
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Configure loggers
@@ -59,18 +52,8 @@ async def lifespan(app: FastAPI):
         out_str = f"--out {args.uav_connection} {' '.join([f'--out {address}' for address in args.gs_connection])} "
         sitl_command = f"xterm -e {args.ardupilot_path}/Tools/autotest/sim_vehicle.py -v ArduCopter -I {args.sysid} --sysid {args.sysid} -N -L {args.location} --speedup {args.speedup} {out_str}&"
         os.system(sitl_command)
-    # Initialize protocol thread
-    if args.protocol:
-        protocol_debug = ("PROTOCOL" in args.debug)
-        protocol_console = ("PROTOCOL" in args.log_console)
-        protocol_t, protocol_q = create_protocol(args.protocol_name, args.port, args.sysid, args.pos, args.collaborators, args.log_path, protocol_debug, protocol_console, args.communication_range, args.speedup)
     get_copter_instance(args.sysid, f"{args.connection_type}:{args.uav_connection}")
     yield
-    # Close protocol thread
-    if args.protocol:
-        protocol_q.close()
-        protocol_q.join_thread()
-        protocol_t.join()
     # Close SITL
     if args.simulated:
         os.system("pkill xterm")
@@ -90,5 +73,3 @@ app = FastAPI(
 app.include_router(movement_router)
 app.include_router(command_router)
 app.include_router(telemetry_router)
-if args.protocol:
-    app.include_router(protocol_router)
