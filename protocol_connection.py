@@ -1,14 +1,10 @@
-from multiprocessing import Process, Queue
-from uav_protocol import start_protocol
+from multiprocessing import Queue
 
 p_queue = None
 
-def create_protocol(protocol_name, port, sysid, pos, collaborators, log_file, debug, log_console, communication_range, speedup):
+def set_protocol_queue(queue: Queue):
     global p_queue
-    p_queue = Queue()
-    protocol_process = Process(target=start_protocol, args=(protocol_name, f"http://localhost:{port}", sysid, pos, p_queue, collaborators, log_file, debug, log_console, communication_range, speedup))
-    protocol_process.start()
-    return (protocol_process, p_queue)
+    p_queue = queue
 
 def get_protocol_queue():
     global p_queue

@@ -185,6 +185,8 @@ async def queue_handler():
         elif command["type"] == "finish":
             protocol.finish()
             running = False
+            alive = False
+            return
         elif command["type"] == "message" and running:
             print("Command is message.")
             handle_message(command)
@@ -309,3 +311,4 @@ def start_protocol(protocol_name, api_arg, sysid_arg, pos_arg, extern_queue, col
         protocol_print("----- END -----")
 
     asyncio.run(main_loop())
+    protocol_print("Protocol process finished.")
